@@ -1,0 +1,119 @@
+<!-- ====================== editor.html ====================== -->
+<!doctype html>
+<html lang="en" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SaveForge • Editor</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        />
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+            body {
+                font-family: "Press Start 2P", system-ui;
+            }
+            .glitch {
+                animation: glitch 0.3s infinite;
+            }
+            @keyframes glitch {
+                0% {
+                    transform: translate(0);
+                }
+                20% {
+                    transform: translate(-2px, 2px);
+                }
+                40% {
+                    transform: translate(-2px, -2px);
+                }
+                60% {
+                    transform: translate(2px, 2px);
+                }
+                80% {
+                    transform: translate(2px, -2px);
+                }
+                100% {
+                    transform: translate(0);
+                }
+            }
+        </style>
+        <script src="utils.js" defer></script>
+        <script src="functions.js" defer></script>
+    </head>
+    <body class="bg-[#0a0a0a] text-[#00ff9d] min-h-screen flex flex-col">
+        <!-- HEADER -->
+        <div
+            class="border-b border-[#00ff9d]/30 bg-black/80 backdrop-blur-md sticky top-0 z-50"
+        >
+            <div
+                class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between"
+            >
+                <div class="flex items-center gap-3">
+                    <i
+                        onclick="window.location.href = 'index.html'"
+                        class="fa-solid fa-arrow-left text-3xl cursor-pointer hover:text-[#ff00aa]"
+                    ></i>
+                    <div>
+                        <h1 class="text-2xl tracking-widest">
+                            SAVEFORGE<span class="text-[#ff00aa]">EDITOR</span>
+                        </h1>
+                    </div>
+                </div>
+                <button
+                    onclick="downloadSave()"
+                    class="px-8 py-4 bg-[#ff00aa] text-black font-bold rounded-2xl flex items-center gap-3 hover:scale-105 transition"
+                >
+                    <i class="fa-solid fa-download"></i>
+                    DOWNLOAD EDITED SAVE
+                </button>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-6 py-12 flex-1">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <span id="fileNameDisplay" class="text-xl font-bold"></span>
+                    <span
+                        id="formatBadge"
+                        class="ml-3 px-3 py-1 text-xs rounded-full bg-[#ff00aa] text-black"
+                    ></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- GENERAL -->
+                <div
+                    class="bg-black/70 border border-[#00ff9d]/30 rounded-3xl p-8"
+                >
+                    <h3 class="text-[#ff00aa] mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-info-circle"></i> FILE INFO
+                    </h3>
+                    <div id="infoPanel" class="space-y-4 text-sm"></div>
+                </div>
+
+                <!-- MAIN EDITOR -->
+                <div
+                    class="lg:col-span-2 bg-black/70 border border-[#00ff9d]/30 rounded-3xl p-8"
+                >
+                    <h3 class="text-[#ff00aa] mb-6 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> EDIT VALUES
+                    </h3>
+                    <div id="editorContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            window.addEventListener("load", () => {
+                initTailwind();
+                loadEditorData(); // from localStorage → render everything
+                console.log(
+                    "%c🔧 SaveForge editor.html loaded – editing live",
+                    "color:#ff00aa; font-family:monospace",
+                );
+            });
+        </script>
+    </body>
+</html>

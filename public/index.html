@@ -1,0 +1,159 @@
+<!-- ====================== index.html ====================== -->
+<!doctype html>
+<html lang="en" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SaveForge Online • Edit Game Saves Instantly</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        />
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+            body {
+                font-family: "Press Start 2P", system-ui;
+            }
+            .glitch {
+                animation: glitch 0.3s infinite;
+            }
+            @keyframes glitch {
+                0% {
+                    transform: translate(0);
+                }
+                20% {
+                    transform: translate(-2px, 2px);
+                }
+                40% {
+                    transform: translate(-2px, -2px);
+                }
+                60% {
+                    transform: translate(2px, 2px);
+                }
+                80% {
+                    transform: translate(2px, -2px);
+                }
+                100% {
+                    transform: translate(0);
+                }
+            }
+        </style>
+    </head>
+    <body class="bg-[#0a0a0a] text-[#00ff9d] min-h-screen flex flex-col">
+        <!-- HEADER -->
+        <div
+            class="border-b border-[#00ff9d]/30 bg-black/80 backdrop-blur-md sticky top-0 z-50"
+        >
+            <div
+                class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between"
+            >
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-gamepad text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl tracking-widest">
+                            SAVEFORGE<span class="text-[#ff00aa]">ONLINE</span>
+                        </h1>
+                        <p class="text-xs text-[#00ff9d]/70 -mt-1">
+                            free • instant • no bullshit
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-6 text-sm">
+                    <a
+                        href="#"
+                        onclick="showFormats()"
+                        class="hover:text-white transition"
+                        >SUPPORTED FORMATS</a
+                    >
+                    <div
+                        class="px-4 py-1 bg-[#00ff9d]/10 border border-[#00ff9d] rounded text-xs flex items-center gap-2"
+                    >
+                        <i class="fa-solid fa-shield-halved"></i>
+                        100% CLIENT-SIDE
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="max-w-6xl mx-auto px-6 py-12 flex-1 flex items-center justify-center"
+        >
+            <!-- UPLOAD ZONE -->
+            <div
+                id="uploadZone"
+                onclick="document.getElementById('fileInput').click()"
+                class="border-4 border-dashed border-[#00ff9d]/40 hover:border-[#00ff9d] rounded-3xl p-12 text-center cursor-pointer transition-all duration-300 bg-black/50 max-w-2xl w-full"
+            >
+                <i
+                    class="fa-solid fa-cloud-upload-alt text-6xl mb-6 text-[#00ff9d]"
+                ></i>
+                <h2 class="text-3xl mb-2">DROP YOUR SAVE FILE HERE</h2>
+                <p class="text-[#00ff9d]/70 mb-6">
+                    .sav .json .rmmzsave .rpgsave .rvdata2 … any format
+                </p>
+                <button
+                    onclick="
+                        event.stopImmediatePropagation();
+                        document.getElementById('fileInput').click();
+                    "
+                    class="px-8 py-4 bg-[#00ff9d] text-black font-bold rounded-xl hover:scale-105 transition"
+                >
+                    OR CLICK TO BROWSE
+                </button>
+                <input
+                    type="file"
+                    id="fileInput"
+                    class="hidden"
+                    onchange="handleUpload(this.files[0])"
+                />
+                <p class="text-xs mt-8 text-[#ff00aa]">
+                    Always back up your original save first!
+                </p>
+            </div>
+        </div>
+
+        <!-- FOOTER / FORMATS MODAL -->
+        <div
+            id="formatsModal"
+            onclick="if (event.target === this) hideFormats();"
+            class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[9999]"
+        >
+            <div
+                class="max-w-3xl bg-[#111] border border-[#00ff9d] rounded-3xl p-8 text-center"
+            >
+                <h2 class="text-2xl mb-8">
+                    Supported Formats (MVP ready • more coming)
+                </h2>
+                <div class="grid grid-cols-3 gap-4 text-left">
+                    <div class="bg-black p-4 rounded-2xl">
+                        .json • .save (Unity / Ren'Py)
+                    </div>
+                    <div class="bg-black p-4 rounded-2xl">
+                        .rmmzsave • .rpgsave (RPG Maker MZ/MV)
+                    </div>
+                    <div class="bg-black p-4 rounded-2xl">
+                        .rvdata2 • .rxdata (RPG Maker VX Ace / XP)
+                    </div>
+                    <div class="bg-black p-4 rounded-2xl">
+                        .sav (Wolf RPG / Unreal)
+                    </div>
+                    <div class="bg-black p-4 rounded-2xl">
+                        .lsd (RPG Maker 2000/2003)
+                    </div>
+                    <div class="bg-black p-4 rounded-2xl">
+                        Any other → raw editor
+                    </div>
+                </div>
+                <button
+                    onclick="hideFormats()"
+                    class="mt-8 px-8 py-3 border border-[#00ff9d] text-[#00ff9d] rounded-2xl"
+                >
+                    CLOSE
+                </button>
+            </div>
+        </div>
+
+        <script src="js/bundle.js"></script>
+    </body>
+</html>
