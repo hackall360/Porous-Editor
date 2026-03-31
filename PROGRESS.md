@@ -21,7 +21,17 @@ Status: In Progress
 5. **Parser Implementation** - For formats that need it (NBT, SQLite, ESS, etc.), create parser modules that can extract readable data from binary structures
 6. **Testing & Validation** - Test format detection with sample files, verify parsers handle edge cases, ensure backward compatibility with existing 8 formats
 
-## Current State Summary
-Starting implementation of extended format support. The project currently supports 8 explicit formats (json, save, rmmzsave, rpgsave, rvdata2, rxdata, lsd, sav) plus raw fallback. Need to add 16+ new formats with varying complexity - some are simple text (json, xml, plist), some are binary databases (sqlite, db), some are custom binary formats (ess, nbt, sc2save, etc.). The formats modal will need significant expansion to document all these properly. No code changes made yet - this is the planning phase.
 
-Last Updated: 2025-12-19 (initial creation)
+
+## Current State Summary
+
+
+
+Git workflow established: main branch for production, develop branch for feature work. Examples folder populated with reference implementations: PalworldSaveEditor (UE GVAS examples), saveeditor (universal save editor approach), nbt-js and prismarine-nbt (Minecraft NBT parsers). All cloned into `examples/` (gitignored). Ready to begin implementation. The project currently supports 8 explicit formats (json, save, rmmzsave, rpgsave, rvdata2, rxdata, lsd, sav) plus raw fallback. Need to add 16+ new formats with varying complexity - some are simple text (json, xml, plist), some are binary databases (sqlite, db), some are custom binary formats (ess, nbt, sc2save, etc.). The formats modal will need significant expansion to document all these properly. No code changes made yet to the codebase - this is still planning/research phase.
+
+
+
+
+
+Last Updated: 2025-12-19 (git setup complete, develop branch created, examples folder populated with reference implementations)
+
