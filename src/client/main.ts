@@ -25,6 +25,9 @@ declare global {
     updateMoney: (value: string) => void;
     updateItem: (index: number, value: string) => void;
     updateStat: (key: string, value: string) => void;
+    clearData: () => void;
+    showAbout: () => void;
+    hideAbout: () => void;
   }
 }
 
@@ -98,6 +101,10 @@ function loadFromLocalStorage(): StoredSave | null {
   }
 }
 
+function clearStoredSave(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 // ====================== File Upload Handler ======================
 function handleUpload(file: File | null): void {
   if (!file) return;
@@ -147,6 +154,9 @@ function loadEditorData(): void {
     storedType: stored.type,
   });
 
+  renderInfoPanel();
+  renderFileStats();
+
   const fileNameDisplay = document.getElementById("fileNameDisplay");
   const formatBadge = document.getElementById("formatBadge");
 
@@ -165,11 +175,81 @@ function loadEditorData(): void {
   }
 }
 
+function renderInfoPanel(): void {
+  const infoPanel = document.getElementById("infoPanel");
+  if (!infoPanel) return;
+
+  const stored = loadFromLocalStorage();
+  if (!stored) return;
+
+  const formatLabel = getFormatLabel(stored.ext);
+  const fileSize = getFileSizeString(stored.data);
+  const storedType = stored.type === "json" ? "Structured (JSON)" : "Raw Text";
+  const timestamp = new Date(stored.timestamp).toLocaleString();
+
+  let html = `
+    <div class="bg-[#111] p-4 rounded-xl">
+      <div class="text-xs text-[#00ff9d]/70 mb-1">FORMAT</div>
+      <div class="text-sm font-bold">${formatLabel}</div>
+    </div>
+    <div class="bg-[#111] p-4 rounded-xl">
+      <div class="text-xs text-[#00ff9d]/70 mb-1">FILE SIZE</div>
+      <div class="text-sm font-bold">${fileSize}</div>
+    </div>
+    <div class="bg-[#111] p-4 rounded-xl">
+      <div class="text-xs text-[#00ff9d]/70 mb-1">DATA TYPE</div>
+      <div class="text-sm font-bold">${storedType}</div>
+    </div>
+    <div class="bg-[#111] p-4 rounded-xl">
+      <div class="text-xs text-[#00ff9d]/70 mb-1">LOADED</div>
+      <div class="text-sm font-bold">${timestamp}</div>
+    </div>
+    <div class="pt-4 border-t border-[#00ff9d]/20">
+      <button onclick="clearData()" class="w-full px-4 py-2 bg-[#ff00aa] text-black text-xs font-bold rounded hover:scale-105 transition">
+        CLEAR DATA
+      </button>
+    </div>
+  `;
+
+  infoPanel.innerHTML = html;
+}
+
+function renderFileStats(): void {
+  // Additional file statistics can be added here
+  const data = editorState.getCurrentData();
+  if (!data) return;
+
+  console.log("File loaded:", {
+    name: editorState.getOriginalName(),
+    extension: editorState.getOriginalExt(),
+    type: editorState.getStoredType(),
+    timestamp: new Date().toISOString(),
+  });
+}
+
+function getFileSizeString(data: SaveData): string {
+  let content: string;
+  if ("raw" in data) {
+    content = data.raw;
+  } else {
+    content = JSON.stringify(data);
+  }
+
+  const bytes = new Blob([content]).size;
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  } else if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  } else {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+}
+
 function renderJSONEditor(): void {
   const data = editorState.getCurrentData() as JsonSaveData;
   if (!data) return;
 
-  const moneyVal = data.money || data.gold || 999999;
+  const moneyVal = data.money || data.gold || 0;
   const items = data.items || [];
 
   let html = `<div class="space-y-8">`;
@@ -195,8 +275,8 @@ function renderJSONEditor(): void {
       <table class="w-full">
         <thead>
           <tr class="text-left border-b">
-            <th>ITEM</th>
-            <th>QTY</th>
+            <th class="pb-2">ITEM</th>
+            <th class="pb-2 text-center">QTY</th>
           </tr>
         </thead>
         <tbody id="itemsBody">
@@ -207,13 +287,14 @@ function renderJSONEditor(): void {
       const itemName = item.name || `Item ${i}`;
       const itemQty = item.qty || item.amount || 1;
       html += `
-        <tr class="border-b">
-          <td>${itemName}</td>
-          <td>
+        <tr class="border-b border-[#00ff9d]/10">
+          <td class="py-2">${escapeHtml(itemName)}</td>
+          <td class="py-2 text-center">
             <input
               type="number"
               value="${itemQty}"
-              class="bg-transparent w-20 text-center"
+              min="0"
+              class="bg-transparent w-20 text-center border border-[#00ff9d]/40 rounded px-2 py-1 focus:outline-none focus:border-[#00ff9d]"
               onchange="updateItem(${i}, this.value)"
             >
           </td>
@@ -221,7 +302,7 @@ function renderJSONEditor(): void {
       `;
     });
   } else {
-    html += `<tr><td colspan="2" class="text-center py-8 text-[#00ff9d]/50">No items detected</td></tr>`;
+    html += `<tr><td colspan="2" class="text-center py-8 text-[#00ff9d]/50">No inventory items detected</td></tr>`;
   }
 
   html += `
@@ -231,24 +312,28 @@ function renderJSONEditor(): void {
   `;
 
   // Stats/Vars section
-  html += `
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <h4 class="mb-3 text-[#ff00aa]">STATS / VARS</h4>
-  `;
+  const statsKeys = Object.keys(data).filter(
+    (key) => !["items", "money", "gold"].includes(key),
+  );
 
-  Object.keys(data)
-    .filter((key) => !["items", "money", "gold"].includes(key))
-    .forEach((key) => {
+  if (statsKeys.length > 0) {
+    html += `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h4 class="mb-3 text-[#ff00aa]">STATS / VARIABLES</h4>
+    `;
+
+    statsKeys.forEach((key) => {
       const value = data[key];
       if (typeof value === "number" || typeof value === "string") {
+        const inputType = typeof value === "number" ? "number" : "text";
         html += `
-          <div class="flex justify-between mb-2">
-            <span>${key.toUpperCase()}</span>
+          <div class="flex justify-between items-center mb-2 bg-[#111] p-3 rounded">
+            <span class="text-sm">${escapeHtml(key.toUpperCase())}</span>
             <input
-              type="text"
-              value="${value}"
-              class="bg-transparent border border-[#00ff9d]/70 px-4 py-1 w-1/2"
+              type="${inputType}"
+              value="${escapeHtml(String(value))}"
+              class="bg-transparent border border-[#00ff9d]/40 px-3 py-1 w-32 text-right focus:outline-none focus:border-[#00ff9d] rounded"
               onchange="updateStat('${key}', this.value)"
             >
           </div>
@@ -256,11 +341,19 @@ function renderJSONEditor(): void {
       }
     });
 
-  html += `
+    html += `
+        </div>
       </div>
     </div>
-  </div>
-  `;
+    `;
+  } else {
+    html += `
+      <div class="text-center py-8 text-[#00ff9d]/50">
+        <i class="fa-solid fa-database text-2xl mb-2"></i>
+        <p>No additional variables detected</p>
+      </div>
+    `;
+  }
 
   const editorContent = document.getElementById("editorContent");
   if (editorContent) {
@@ -274,14 +367,60 @@ function renderRawEditor(): void {
 
   if (editorContent) {
     editorContent.innerHTML = `
-      <textarea
-        id="rawEditor"
-        class="w-full h-96 bg-black border border-[#00ff9d]/40 p-6 font-mono text-xs text-[#00ff9d] rounded-3xl"
-      >${data.raw}</textarea>
-      <p class="text-xs text-[#ff00aa] mt-4">
-        Raw mode — edit freely and download. Perfect for binary/text saves.
-      </p>
+      <div class="space-y-4">
+        <textarea
+          id="rawEditor"
+          class="w-full h-96 bg-black border border-[#00ff9d]/40 p-6 font-mono text-xs text-[#00ff9d] rounded-3xl resize-y focus:outline-none focus:border-[#00ff9d]"
+        >${escapeHtml(data.raw)}</textarea>
+        <div class="flex items-center justify-between text-xs">
+          <p class="text-[#ff00aa]">
+            <i class="fa-solid fa-exclamation-triangle mr-1"></i>
+            Raw mode — edit freely. Be careful with binary data.
+          </p>
+          <div class="flex gap-2">
+            <button onclick="formatRaw()" class="px-3 py-1 border border-[#00ff9d] text-[#00ff9d] rounded hover:bg-[#00ff9d]/10 transition">
+              FORMAT JSON
+            </button>
+            <button onclick="clearRaw()" class="px-3 py-1 border border-[#ff00aa] text-[#ff00aa] rounded hover:bg-[#ff00aa]/10 transition">
+              CLEAR
+            </button>
+          </div>
+        </div>
+      </div>
     `;
+  }
+}
+
+// ====================== Raw Editor Utilities ======================
+function formatRaw(): void {
+  const rawEditor = document.getElementById("rawEditor") as HTMLTextAreaElement;
+  if (!rawEditor) return;
+
+  const data = editorState.getCurrentData() as RawSaveData;
+  if (!data) return;
+
+  try {
+    const parsed = JSON.parse(data.raw);
+    const formatted = JSON.stringify(parsed, null, 2);
+    rawEditor.value = formatted;
+    data.raw = formatted;
+    saveDataToMemory();
+  } catch (err) {
+    alert("Cannot format: Invalid JSON data");
+  }
+}
+
+function clearRaw(): void {
+  const rawEditor = document.getElementById("rawEditor") as HTMLTextAreaElement;
+  if (!rawEditor) return;
+
+  if (confirm("Clear all content? This cannot be undone.")) {
+    rawEditor.value = "";
+    const data = editorState.getCurrentData() as RawSaveData;
+    if (data) {
+      data.raw = "";
+      saveDataToMemory();
+    }
   }
 }
 
@@ -311,14 +450,26 @@ function updateItem(index: number, value: string): void {
 function updateStat(key: string, value: string): void {
   const currentData = editorState.getCurrentData() as JsonSaveData;
   if (currentData) {
-    currentData[key] = value;
+    // Try to convert to number if it was a number
+    const numValue = parseInt(value);
+    currentData[key] = isNaN(numValue) ? value : numValue;
     saveDataToMemory();
   }
 }
 
 function saveDataToMemory(): void {
   // Data is already mutated in memory through references
-  // This function exists for API compatibility
+  // This function exists for API compatibility and future persistence
+}
+
+function clearData(): void {
+  if (
+    confirm("Clear all saved data? This will return you to the upload page.")
+  ) {
+    clearStoredSave();
+    editorState.reset();
+    window.location.href = "index.html";
+  }
 }
 
 function downloadSave(): void {
@@ -326,28 +477,37 @@ function downloadSave(): void {
   const originalName = editorState.getOriginalName();
   const originalExt = editorState.getOriginalExt();
 
+  if (!currentData) {
+    console.error("No data to download");
+    alert("No data available to download.");
+    return;
+  }
+
   let blob: Blob;
-  if (currentData && "raw" in currentData) {
+  let filename: string;
+
+  if ("raw" in currentData) {
     blob = new Blob([currentData.raw], { type: "application/octet-stream" });
-  } else if (currentData) {
+    filename = originalName || `edited_save.${originalExt}`;
+  } else {
     blob = new Blob([JSON.stringify(currentData, null, 2)], {
       type: "application/json",
     });
-  } else {
-    console.error("No data to download");
-    return;
+    filename = originalName?.replace(/\.[^/.]+$/, "") || "edited_save";
+    filename += ".json";
   }
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = originalName || `edited_save.${originalExt}`;
+  a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
   // Mini celebration animation
   const panel = document.querySelector("#editorContent");
-
   const panelElement = panel as HTMLElement | null;
 
   if (panelElement) {
@@ -357,6 +517,8 @@ function downloadSave(): void {
       panelElement.style.transform = "scale(1)";
     }, 300);
   }
+
+  showNotification("Download started!");
 }
 
 // ====================== Modal Helpers ======================
@@ -374,13 +536,58 @@ function hideFormats(): void {
   }
 }
 
+function showAbout(): void {
+  const modal = document.getElementById("aboutModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+  }
+}
+
+function hideAbout(): void {
+  const modal = document.getElementById("aboutModal");
+  if (modal) {
+    modal.classList.add("hidden");
+  }
+}
+
+// ====================== UI Utilities ======================
+function escapeHtml(text: string): string {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function showNotification(message: string, duration: number = 2000): void {
+  const notification = document.createElement("div");
+  notification.className =
+    "fixed top-20 right-6 bg-[#00ff9d] text-black px-6 py-3 rounded-lg font-bold shadow-lg z-50 animate-pulse";
+  notification.textContent = message;
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.remove();
+  }, duration);
+}
+
 // ====================== Initialization ======================
 function init(): void {
   // Initialize - all CDN resources auto-initialize
   console.log(
-    "%c🔧 SaveForge loaded – editing ready",
-    "color:#ff00aa; font-family:monospace",
+    "%c🛠️ Porous Editor loaded – editing ready",
+    "color:#00ff9d; font-family:monospace",
   );
+
+  // Add keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault();
+      downloadSave();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "o") {
+      e.preventDefault();
+      document.getElementById("fileInput")?.click();
+    }
+  });
 }
 
 // Export functions for global HTML access
@@ -389,9 +596,11 @@ function init(): void {
 (window as any).downloadSave = downloadSave;
 (window as any).showFormats = showFormats;
 (window as any).hideFormats = hideFormats;
-(window as any).updateMoney = updateMoney;
-(window as any).updateItem = updateItem;
-(window as any).updateStat = updateStat;
+(window as any).clearData = clearData;
+(window as any).showAbout = showAbout;
+(window as any).hideAbout = hideAbout;
+(window as any).formatRaw = formatRaw;
+(window as any).clearRaw = clearRaw;
 
 // Auto-initialize on load
 if (typeof window !== "undefined") {

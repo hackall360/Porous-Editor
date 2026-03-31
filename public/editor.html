@@ -59,13 +59,21 @@
                         </h1>
                     </div>
                 </div>
-                <button
-                    onclick="downloadSave()"
-                    class="px-8 py-4 bg-[#ff00aa] text-black font-bold rounded-2xl flex items-center gap-3 hover:scale-105 transition"
-                >
-                    <i class="fa-solid fa-download"></i>
-                    DOWNLOAD EDITED SAVE
-                </button>
+                <div class="flex items-center gap-4">
+                    <button
+                        onclick="showAbout()"
+                        class="px-4 py-2 border border-[#00ff9d] text-[#00ff9d] text-xs font-bold rounded hover:bg-[#00ff9d]/10 transition"
+                    >
+                        <i class="fa-solid fa-circle-info mr-2"></i>ABOUT
+                    </button>
+                    <button
+                        onclick="downloadSave()"
+                        class="px-8 py-4 bg-[#ff00aa] text-black font-bold rounded-2xl flex items-center gap-3 hover:scale-105 transition"
+                    >
+                        <i class="fa-solid fa-download"></i>
+                        DOWNLOAD EDITED SAVE
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -99,6 +107,105 @@
                         <i class="fa-solid fa-sliders"></i> EDIT VALUES
                     </h3>
                     <div id="editorContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABOUT MODAL -->
+        <div
+            id="aboutModal"
+            onclick="if (event.target === this) hideAbout();"
+            class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[9999] p-4"
+        >
+            <div
+                class="max-w-2xl bg-[#111] border border-[#00ff9d] rounded-3xl p-8 text-center relative"
+            >
+                <button
+                    onclick="hideAbout()"
+                    class="absolute top-4 right-4 text-[#ff00aa] hover:text-white text-2xl"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div class="mb-6">
+                    <i class="fa-solid fa-gamepad text-6xl text-[#00ff9d] mb-4"></i>
+                    <h2 class="text-3xl mb-2">POROUS EDITOR</h2>
+                    <p class="text-[#00ff9d]/70 text-sm">Version 1.0.0</p>
+                </div>
+
+                <div class="text-left space-y-4 text-sm mb-8">
+                    <p>
+                        A fully</p>-featured, 100% client-side save file editor. Porous Editor
+                        supports multiple game save formats and provides an intuitive interface
+                        for editing game saves directly in your browser.
+                    </p>
+
+                    <div class="bg-[#0a0a0a] p-4 rounded-xl">
+                        <h4 class="text-[#ff00aa] mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-check-circle"></i> FEATURES
+                        </h4>
+                        <ul class="space-y-2 text-xs">
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-shield-halved text-[#00ff9d] mt-0.5"></i>
+                                <span><strong>100% Client-Side</strong> - All processing happens in your browser. No data is uploaded.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-layer-group text-[#00ff9d] mt-0.5"></i>
+                                <span><strong>Multi-Format Support</strong> - JSON/Unity, RPG Maker series, and raw files</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-bolt text-[#00ff9d] mt-0.5"></i>
+                                <span><strong>Real-Time Editing</strong> - Instant preview with live updates</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-code text-[#00ff9d] mt-0.5"></i>
+                                <span><strong>Type-Safe</strong> - Built with TypeScript for reliability</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-mobile-screen text-[#00ff9d] mt-0.5"></i>
+                                <span><strong>Responsive Design</strong> - Works on desktop and mobile</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-[#0a0a0a] p-4 rounded-xl">
+                        <h4 class="text-[#ff00aa] mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-file-contract"></i> LICENSE
+                        </h4>
+                        <p class="text-xs">
+                            Porous Editor is open source software licensed under the
+                            <a href="https://mozilla.org/MPL/2.0/" target="_blank" class="text-[#00ff9d] hover:underline">
+                                Mozilla Public License 2.0
+                            </a>.
+                            This means you are free to use, modify, and distribute this software,
+                            but modifications to MPL-licensed files must remain under MPL-2.0.
+                        </p>
+                    </div>
+
+                    <div class="bg-[#0a0a0a] p-4 rounded-xl">
+                        <h4 class="text-[#ff00aa] mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-keyboard"></i> KEYBOARD SHORTCUTS
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="flex items-center gap-2">
+                                <kbd class="px-2 py-1 bg-[#111] border border-[#00ff9d]/40 rounded text-xs">Ctrl+S</kbd>
+                                <span>Download save</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <kbd class="px-2 py-1 bg-[#111] border border-[#00ff9d]/40 rounded text-xs">Ctrl+O</kbd>
+                                <span>Open file</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-[#00ff9d]/60">
+                    <p>Built with TypeScript, ESBuild, and Tailwind CSS</p>
+                    <p class="mt-1">
+                        <a href="https://github.com/hackall360/Porous-Editor" target="_blank" class="hover:text-[#00ff9d] transition">
+                            <i class="fa-brands fa-github mr-1"></i> View on GitHub
+                        </a>
+                    </p>
                 </div>
             </div>
         </div>
