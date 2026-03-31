@@ -1,7 +1,7 @@
 {
   "name": "porous-editor",
   "version": "1.0.0",
-  "description": "SaveForge - A fully featured save editor for multiple game save formats",
+  "description": "Porous Editor - A fully featured save editor for multiple game save formats",
   "scripts": {
     "dev": "npm run build:watch",
     "build": "npm run build:client",
@@ -17,9 +17,10 @@
     "rpg-maker",
     "unity",
     "typescript",
-    "client-side"
+    "client-side",
+    "porous-editor"
   ],
-  "author": "SaveForge Team",
+  "author": "Porous Editor Team",
   "license": "MPL-2.0",
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.1.0",

@@ -1,6 +1,6 @@
-# SaveForge - Quick Start Guide
+# Porous Editor - Quick Start Guide
 
-Get up and running with SaveForge in 5 minutes!
+Get up and running with Porous Editor in 5 minutes!
 
 ## Prerequisites
 
@@ -63,7 +63,7 @@ npm run serve
 porous-editor/
 ├── src/
 │   └── client/
-│       └── index.ts      # All client-side TypeScript logic
+│       └── main.ts      # All client-side TypeScript logic
 ├── public/               # Static files (what you deploy)
 │   ├── index.html        # Upload page
 │   ├── editor.html       # Editor page
@@ -152,8 +152,8 @@ npm run build
 ## Next Steps
 
 - Read the full [README.md](README.md) for detailed documentation
-- Check `src/client/index.ts` to understand the client logic
-- Review `src/types/index.ts` to see the type definitions
+- Check `src/client/main.ts` to understand the client logic
+- Review `src/client/types/index.ts` to see the type definitions
 - Customize the UI in the HTML files and TypeScript code
 
 ## Need Help?

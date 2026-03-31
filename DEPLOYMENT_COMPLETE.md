@@ -1,8 +1,8 @@
-# SaveForge - Deployment Complete
+# Porous Editor - Deployment Complete
 
 ## ✅ Deployment Status: READY FOR GITHUB PAGES
 
-Your SaveForge application is now fully configured and ready for automatic deployment to GitHub Pages.
+Your Porous Editor application is now fully configured and ready for automatic deployment to GitHub Pages.
 
 ---
 
@@ -20,7 +20,7 @@ Your SaveForge application is now fully configured and ready for automatic deplo
 - [x] All code committed to `main` branch
 - [x] Remote origin configured: `https://github.com/hackall360/Porous-Editor.git`
 - [x] `.gitignore` properly excludes `node_modules/` and build artifacts
-- [x] 26 files committed (7,497+ lines)
+- [x] 26+ files committed (7,500+ lines)
 
 ### ✅ GitHub Actions Workflow
 - [x] Created `.github/workflows/deploy.yml`
@@ -86,21 +86,21 @@ https://hackall360.github.io/Porous-Editor/
 ## 🔄 How Deployment Works
 
 ```
-You push to main branch
-         ↓
-GitHub Actions triggers automatically
-         ↓
-Checkout code & setup Node.js 18
-         ↓
-Install dependencies (npm ci)
-         ↓
-Build project (npm run build)
-         ↓
-Creates optimized bundle in /public
-         ↓
-Upload artifact to GitHub Pages
-         ↓
-Site goes live at github.io URL
+Push to main branch
+    ↓
+GitHub Actions triggers
+    ↓
+Checkout code + setup Node.js
+    ↓
+npm ci (install dependencies)
+    ↓
+npm run build (create bundle)
+    ↓
+Upload /public as artifact
+    ↓
+Deploy to GitHub Pages
+    ↓
+Site goes live! 🎉
 ```
 
 ---
@@ -112,7 +112,7 @@ Site goes live at github.io URL
 | **Branch** | `main` | Default branch configured |
 | **Remote** | `origin` | https://github.com/hackall360/Porous-Editor.git |
 | **Last Commit** | `2d4fce1` | docs: add GitHub Pages quick reference guide |
-| **Files Tracked** | 28 | Excludes node_modules |
+| **Files Tracked** | 28+ | Excludes node_modules |
 | **Workflow** | ✅ Ready | `.github/workflows/deploy.yml` |
 | **License** | MPL-2.0 | Full text in LICENSE file |
 | **Build** | ✅ Verified | `npm run build` succeeds locally |
@@ -126,10 +126,10 @@ The GitHub Pages deployment uploads the **entire `/public` directory**:
 ```
 public/
 ├── index.html          ← Upload page (entry point)
-├── editor.html         ← Editor interface
+├── editor.html         ← Editor page
 └── js/
     └── bundle.js       ← Compiled TypeScript (5.6KB minified)
-    └── bundle.js.map   ← Source map (for debugging)
+    └── bundle.js.map   ← Source map for debugging
 ```
 
 **Note**: The `bundle.js.map` file is included for debugging. You can remove it for production by updating the build script if desired.
@@ -210,12 +210,12 @@ If you want to use a custom domain instead of the github.io URL:
 
 ## 🎊 You're All Set!
 
-Your SaveForge application is now:
+Your Porous Editor application is now:
 - ✅ **Type-safe** with full TypeScript strict mode
 - ✅ **100% client-side** - no server required
 - ✅ **MPL-2.0 licensed** - permissive open source
 - ✅ **Auto-deploying** to GitHub Pages
-- ✅ **Well documented** with 9 comprehensive guides
+- ✅ **Well documented** with comprehensive guides
 - ✅ **Production ready** with optimized 5.6KB bundle
 
 **Next**: Wait for the GitHub Actions workflow to complete, then visit your live site!

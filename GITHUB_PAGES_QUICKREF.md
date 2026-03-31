@@ -1,4 +1,4 @@
-# GitHub Pages Quick Reference - SaveForge
+# GitHub Pages Quick Reference - Porous Editor
 
 ## ✅ Prerequisites Done
 - [x] Code pushed to GitHub repository
@@ -18,7 +18,7 @@
 git push origin main
 ```
 
-### 3. Wait for Deployment
+### 3. Wait for Completion
 1. Go to **Actions** tab in your repository
 2. Wait for "Deploy to GitHub Pages" workflow to complete (✓)
 3. Site will be live at: `https://hackall360.github.io/Porous-Editor/`
@@ -51,20 +51,20 @@ Every push to `main` branch automatically triggers deployment.
 ## 🐛 Troubleshooting
 
 ### Workflow Not Running?
-- Ensure `Settings > Pages` source is set to `GitHub Actions`
-- Check that the workflow file exists at `.github/workflows/deploy.yml`
-- Verify you pushed to the `main` branch
+- Ensure `Settings > Pages` source is `GitHub Actions`
+- Check workflow file exists at `.github/workflows/deploy.yml`
+- Verify you pushed to `main` branch
 
 ### Deployment Failed?
 1. Check Actions log for specific error
-2. Test build locally: `npm run build`
+2. Test locally: `npm run build`
 3. Ensure `public/js/bundle.js` is created
 4. Fix issues, commit, and push again
 
 ### 404 Error?
 - Wait 2-3 minutes after workflow completes
-- GitHub Pages can take a moment to propagate
-- Hard refresh: `Ctrl+F5` or `Cmd+Shift+R`
+- Hard refresh: `Ctrl+F5` (Windows) or `Cmd+Shift+R` (Mac)
+- Clear browser cache
 
 ### Site Shows Old Version?
 - GitHub Pages caches aggressively
@@ -78,7 +78,7 @@ Every push to `main` branch automatically triggers deployment.
 The workflow deploys the **entire `/public` directory**:
 - `index.html` - Upload page
 - `editor.html` - Editor page
-- `js/bundle.js` - Compiled TypeScript (minified)
+- `js/bundle.js` - Compiled TypeScript (5.6KB minified)
 - `js/bundle.js.map` - Source map (for debugging)
 
 ---
@@ -86,7 +86,7 @@ The workflow deploys the **entire `/public` directory**:
 ## 🔧 Custom Domain (Optional)
 
 1. **Settings > Pages** → Custom domain: `yourdomain.com`
-2. **DNS settings** at your registrar:
+2. **DNS records** at your registrar:
    ```
    A @ 185.199.108.153
    A @ 185.199.109.153

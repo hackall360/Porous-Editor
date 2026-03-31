@@ -1,6 +1,6 @@
-# SaveForge - Deployment Guide
+# Porous Editor - Deployment Guide
 
-This guide covers deploying SaveForge to various static hosting services. Since the application is 100% client-side, deployment is straightforward - just upload the `/public` directory.
+This guide covers deploying Porous Editor to various static hosting services. Since the application is 100% client-side, deployment is straightforward - just upload the `/public` directory.
 
 ## 📦 What to Deploy
 

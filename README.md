@@ -1,6 +1,6 @@
-# SaveForge - Pure Client-Side Save Editor
+# Porous Editor - Pure Client-Side Save Editor
 
-A fully-featured, 100% client-side save file editor built with TypeScript. SaveForge supports multiple game save formats and provides an intuitive interface for editing game saves directly in the browser - **no server required**.
+A fully-featured, 100% client-side save file editor built with TypeScript. Porous Editor supports multiple game save formats and provides an intuitive interface for editing game saves directly in the browser - **no server required**.
 
 ## ✨ Features
 
@@ -18,6 +18,8 @@ A fully-featured, 100% client-side save file editor built with TypeScript. SaveF
 
 - Node.js 18+ (for building only)
 - npm or yarn
+
+**Note**: The built application runs entirely in the browser and requires no Node.js at runtime.
 
 ### Development
 
@@ -55,16 +57,15 @@ porous-editor/
 │       └── index.ts      # All client-side TypeScript logic
 ├── public/               # Static files (what you deploy)
 │   ├── index.html        # Upload page
-│   ├── editor.html       # Editor interface
+│   ├── editor.html       # Editor page
 │   └── js/
 │       └── bundle.js     # Compiled client bundle (generated)
-├── package.json          # Dependencies and build scripts
-├── tsconfig.json         # TypeScript configuration
-├── .eslintrc.json        # ESLint rules
-└── .gitignore           # Git ignore patterns
+├── package.json
+├── tsconfig.json
+└── .eslintrc.json
 ```
 
-**For deployment: Only the `/public` directory needs to be uploaded to your hosting service.**
+**For deployment: Only the `/public` directory needs to be uploaded.**
 
 ## 🌐 Supported Formats
 
@@ -119,7 +120,8 @@ Since this is a pure static site, you can deploy to any static hosting service:
 # Build first
 npm run build
 
-# Then copy /public to your GitHub Pages branch or use GitHub Actions
+# Then copy /public to your GitHub Pages branch
+# Or use GitHub Actions with the built files
 ```
 
 ### Netlify / Vercel
@@ -129,7 +131,7 @@ npm run build
 4. Deploy!
 
 ### Any Static Host
-Simply upload the contents of the `/public` folder to your web host. No server-side code required.
+Simply upload the contents of the `/public` folder. No server-side code required.
 
 ## 🔧 Architecture
 
@@ -214,7 +216,7 @@ npm run dev
 ### TypeScript Errors
 ```bash
 npm run typecheck
-# Check that you're using TypeScript 5.1.6+
+# Ensure TypeScript 5.1.6+ is installed
 ```
 
 ### LocalStorage Full
@@ -223,13 +225,20 @@ If you get quota errors, clear localStorage:
 localStorage.clear()
 ```
 
+### Build Fails
+Clear and reinstall:
+```bash
+rm -rf node_modules public/js/bundle.js
+npm install
+npm run build
+```
+
 ## 📄 License
 
-MIT
+MPL-2.0 - See LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
 - Built for the modding and speedrunning communities
 - Inspired by the need for safe, accessible save editing tools
 - Uses Tailwind CSS for styling and Font Awesome for icons
-```

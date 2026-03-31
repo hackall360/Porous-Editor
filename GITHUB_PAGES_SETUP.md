@@ -1,6 +1,6 @@
-# GitHub Pages Setup Guide for SaveForge
+# GitHub Pages Setup Guide for Porous Editor
 
-This guide covers setting up GitHub Pages for automatic deployment of your SaveForge application.
+This guide covers setting up GitHub Pages for automatic deployment of your Porous Editor application.
 
 ## Prerequisites
 

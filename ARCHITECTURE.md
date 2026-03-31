@@ -1,8 +1,8 @@
-# SaveForge - Architecture Documentation
+# Porous Editor - Architecture Documentation
 
 ## System Overview
 
-SaveForge is a **100% client-side** save file editor. There is no server-side processing - everything runs in the user's browser. This architecture provides:
+Porous Editor is a **100% client-side** save file editor. There is no server-side processing - everything runs in the user's browser. This architecture provides:
 
 - **Zero infrastructure costs**
 - **Complete privacy** - files never leave the user's device
@@ -15,7 +15,7 @@ SaveForge is a **100% client-side** save file editor. There is no server-side pr
 ┌─────────────────────────────────────────────────────────────┐
 │                     User's Browser                          │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │                  SaveForge Application                │  │
+│  │                  Porous Editor Application                │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │  │
 │  │  │   index.html│  │ editor.html │  │   bundle.js │ │  │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘ │  │
@@ -534,7 +534,7 @@ Since there's no server:
 
 ## Conclusion
 
-SaveForge's architecture is intentionally simple:
+Porous Editor's architecture is intentionally simple:
 - **No server** = no infrastructure to manage
 - **No database** = no data persistence concerns
 - **No API** = no rate limits or downtime

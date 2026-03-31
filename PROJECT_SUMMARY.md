@@ -1,7 +1,7 @@
-# SaveForge - Project Summary
+# Porous Editor - Project Summary
 
 ## Overview
-SaveForge (formerly Porous Editor) is a fully-featured, 100% client-side save file editor that has been converted from a simple JavaScript application to a modern TypeScript-based web application. The application runs entirely in the browser with no server-side processing required.
+Porous Editor is a fully-featured, 100% client-side save file editor that has been converted from a simple JavaScript application to a modern TypeScript-based web application. The application runs entirely in the browser with no server-side processing required.
 
 ## Conversion Completed
 
@@ -38,9 +38,12 @@ porous-editor/
 ├── tsconfig.json                  # TypeScript configuration
 ├── .eslintrc.json                 # ESLint rules
 ├── .gitignore                     # Git ignore patterns
+│
 ├── README.md                      # Full documentation
 ├── QUICKSTART.md                  # Quick start guide
-└── DEPLOYMENT.md                  # Deployment instructions
+├── DEPLOYMENT.md                  # Deployment instructions
+├── PROJECT_SUMMARY.md             # Project overview
+└── LICENSE                        # MPL-2.0 license
 ```
 
 ## Key Features
@@ -78,7 +81,7 @@ porous-editor/
 - **@typescript-eslint** - TypeScript linting
 
 ### Runtime (via CDN)
-- **Tailwind CSS 3.x** - Utility-first CSS
+- **Tailwind CSS 3.x** - Utility-first CSS framework
 - **Font Awesome 6.5.1** - Icon library
 - **Google Fonts** - Press Start 2P pixel font
 
@@ -132,6 +135,8 @@ The application is ready for deployment to any static hosting service:
 
 3. **Download Phase**: Current state serialized → Blob created → Download triggered with original filename
 
+**All processing happens 100% in the browser. No data ever leaves the user's device.**
+
 ## Architecture Highlights
 
 ### State Management
@@ -178,8 +183,8 @@ Functions exposed to window for HTML onclick handlers:
 
 ## Performance
 
-- Bundle size: ~5.6KB (minified)
-- Build time: ~4ms
+- Bundle size: ~5.6 KB (minified)
+- Build time: ~4 ms
 - Zero server latency
 - Instant file processing
 - LocalStorage persistence
@@ -218,4 +223,4 @@ All original functionality preserved:
 
 ## License
 
-MIT
+MPL-2.0 - See LICENSE file for details.
