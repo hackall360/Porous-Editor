@@ -189,7 +189,8 @@ function renderInfoPanel(): void {
   const storedType = stored.type === "json" ? "Structured (JSON)" : "Raw Text";
   const timestamp = new Date(stored.timestamp).toLocaleString();
 
-  let html = `
+  const html = `
+
     <div class="bg-[#111] p-4 rounded-xl">
       <div class="text-xs text-[#00ff9d]/70 mb-1">FORMAT</div>
       <div class="text-sm font-bold">${escapeHtml(formatLabel)}</div>
@@ -250,15 +251,19 @@ function getFileSizeString(data: SaveData): string {
 
 function renderJSONEditor(): void {
   const data = editorState.getCurrentData() as JsonSaveData;
+
   if (!data) return;
 
   const moneyVal = data.money || data.gold || 0;
+
   const items = data.items || [];
 
   let html = `<div class="space-y-8">`;
 
   // Quick gold/money section
+
   html += `
+
     <div class="flex items-center justify-between bg-[#111] p-6 rounded-2xl">
       <span class="font-bold">GOLD / MONEY</span>
       <input
