@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// ====================== src/client/main.ts ======================
 import {
   SaveData,
   JsonSaveData,
@@ -11,6 +10,7 @@ import {
   EditorState,
   getFormatLabel,
   isJsonFormat,
+  isRawSaveData,
   InventoryItem,
 } from "./types";
 
@@ -22,12 +22,14 @@ declare global {
     downloadSave: () => void;
     showFormats: () => void;
     hideFormats: () => void;
-    updateMoney: (value: string) => void;
-    updateItem: (index: number, value: string) => void;
-    updateStat: (key: string, value: string) => void;
     clearData: () => void;
     showAbout: () => void;
     hideAbout: () => void;
+    formatRaw: () => void;
+    clearRaw: () => void;
+    updateMoney: (value: string) => void;
+    updateItem: (index: number, value: string) => void;
+    updateStat: (key: string, value: string) => void;
   }
 }
 
@@ -190,7 +192,7 @@ function renderInfoPanel(): void {
   let html = `
     <div class="bg-[#111] p-4 rounded-xl">
       <div class="text-xs text-[#00ff9d]/70 mb-1">FORMAT</div>
-      <div class="text-sm font-bold">${formatLabel}</div>
+      <div class="text-sm font-bold">${escapeHtml(formatLabel)}</div>
     </div>
     <div class="bg-[#111] p-4 rounded-xl">
       <div class="text-xs text-[#00ff9d]/70 mb-1">FILE SIZE</div>
@@ -229,7 +231,8 @@ function renderFileStats(): void {
 
 function getFileSizeString(data: SaveData): string {
   let content: string;
-  if ("raw" in data) {
+
+  if (isRawSaveData(data)) {
     content = data.raw;
   } else {
     content = JSON.stringify(data);
@@ -425,6 +428,8 @@ function clearRaw(): void {
 }
 
 // ====================== Data Modification ======================
+// These functions are called from HTML event handlers, so they appear unused to TypeScript
+/* eslint-disable @typescript-eslint/no-unused-vars */
 function updateMoney(value: string): void {
   const numValue = parseInt(value) || 0;
   const currentData = editorState.getCurrentData() as JsonSaveData;
@@ -435,6 +440,7 @@ function updateMoney(value: string): void {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function updateItem(index: number, value: string): void {
   const currentData = editorState.getCurrentData() as JsonSaveData;
   if (!currentData || !currentData.items) return;
@@ -447,6 +453,7 @@ function updateItem(index: number, value: string): void {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function updateStat(key: string, value: string): void {
   const currentData = editorState.getCurrentData() as JsonSaveData;
   if (currentData) {
@@ -456,6 +463,7 @@ function updateStat(key: string, value: string): void {
     saveDataToMemory();
   }
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 function saveDataToMemory(): void {
   // Data is already mutated in memory through references
@@ -474,26 +482,34 @@ function clearData(): void {
 
 function downloadSave(): void {
   const currentData = editorState.getCurrentData();
+
   const originalName = editorState.getOriginalName();
+
   const originalExt = editorState.getOriginalExt();
 
   if (!currentData) {
     console.error("No data to download");
+
     alert("No data available to download.");
+
     return;
   }
 
   let blob: Blob;
+
   let filename: string;
 
-  if ("raw" in currentData) {
+  if (isRawSaveData(currentData)) {
     blob = new Blob([currentData.raw], { type: "application/octet-stream" });
+
     filename = originalName || `edited_save.${originalExt}`;
   } else {
     blob = new Blob([JSON.stringify(currentData, null, 2)], {
       type: "application/json",
     });
+
     filename = originalName?.replace(/\.[^/.]+$/, "") || "edited_save";
+
     filename += ".json";
   }
 
@@ -590,17 +606,48 @@ function init(): void {
   });
 }
 
-// Export functions for global HTML access
+// Assign functions to window for HTML inline event handlers
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).handleUpload = handleUpload;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).loadEditorData = loadEditorData;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).downloadSave = downloadSave;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).showFormats = showFormats;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).hideFormats = hideFormats;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).clearData = clearData;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).showAbout = showAbout;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).hideAbout = hideAbout;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).formatRaw = formatRaw;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).clearRaw = clearRaw;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).updateMoney = updateMoney;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).updateItem = updateItem;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).updateStat = updateStat;
+
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Auto-initialize on load
 if (typeof window !== "undefined") {

@@ -36,9 +36,10 @@ export interface RawSaveData {
 
 /**
  * Parsed JSON save data
+ * Uses Record<string, unknown> for flexibility with any JSON structure
+ * Known properties are typed for better IntelliSense and safety
  */
-export interface JsonSaveData {
-  [key: string]: any;
+export interface JsonSaveData extends Record<string, unknown> {
   money?: number;
   gold?: number;
   items?: InventoryItem[];
@@ -136,4 +137,18 @@ export function isJsonFormat(ext: string): boolean {
   return DEFAULT_FORMATS.jsonExtensions.includes(
     ext.toLowerCase().replace(/^\./, ""),
   );
+}
+
+/**
+ * Type guard to check if data is RawSaveData
+ */
+export function isRawSaveData(data: SaveData): data is RawSaveData {
+  return "raw" in data;
+}
+
+/**
+ * Type guard to check if data is JsonSaveData
+ */
+export function isJsonSaveData(data: SaveData): data is JsonSaveData {
+  return !("raw" in data) && typeof data === "object" && data !== null;
 }
