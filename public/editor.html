@@ -55,11 +55,19 @@
                     ></i>
                     <div>
                         <h1 class="text-2xl tracking-widest">
-                            POROUS EDITOR<span class="text-[#ff00aa]">EDITOR</span>
+                            POROUS EDITOR<span class="text-[#ff00aa]"
+                                >EDITOR</span
+                            >
                         </h1>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
+                    <button
+                        onclick="showFormats()"
+                        class="px-4 py-2 border border-[#00ff9d] text-[#00ff9d] text-xs font-bold rounded hover:bg-[#00ff9d]/10 transition"
+                    >
+                        <i class="fa-solid fa-list mr-2"></i>FORMATS
+                    </button>
                     <button
                         onclick="showAbout()"
                         class="px-4 py-2 border border-[#00ff9d] text-[#00ff9d] text-xs font-bold rounded hover:bg-[#00ff9d]/10 transition"
@@ -111,6 +119,333 @@
             </div>
         </div>
 
+        <!-- FORMATS MODAL -->
+        <div
+            id="formatsModal"
+            onclick="if (event.target === this) hideFormats();"
+            class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[9999] p-4"
+        >
+            <div
+                class="max-w-4xl bg-[#111] border border-[#00ff9d] rounded-3xl p-8 text-center relative max-h-[90vh] overflow-y-auto"
+            >
+                <button
+                    onclick="hideFormats()"
+                    class="absolute top-4 right-4 text-[#ff00aa] hover:text-white text-2xl"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div class="mb-8">
+                    <i
+                        class="fa-solid fa-file-code text-6xl text-[#00ff9d] mb-4"
+                    ></i>
+                    <h2 class="text-3xl mb-2">SUPPORTED FORMATS</h2>
+                    <p class="text-[#00ff9d]/70 text-sm">
+                        Porous Editor can load and edit these save file formats
+                    </p>
+                </div>
+
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left mb-8"
+                >
+                    <!-- JSON / Unity -->
+                    <div
+                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
+                    >
+                        <div class="flex items-center gap-3 mb-3">
+                            <i
+                                class="fa-solid fa-code text-2xl text-[#00ff9d]"
+                            ></i>
+                            <div>
+                                <h3 class="text-lg font-bold">JSON / Unity</h3>
+                                <p class="text-xs text-[#00ff9d]/60">
+                                    .json, .save
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3">
+                            Structured JSON files from Unity games, Ren'Py
+                            visual novels, and other engines that save as JSON.
+                        </p>
+                        <div class="bg-black/50 p-3 rounded text-xs">
+                            <strong class="text-[#ff00aa]"
+                                >Editing Mode:</strong
+                            >
+                            Structured Editor
+                        </div>
+                        <div class="mt-3 text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Auto-detects
+                            money/gold fields
+                            <br />
+                            <i class="fa-solid fa-check mr-1"></i> Parses
+                            inventory items
+                            <br />
+                            <i class="fa-solid fa-check mr-1"></i> Edits
+                            numeric/string variables
+                        </div>
+                    </div>
+
+                    <!-- RPG Maker MV/MZ -->
+                    <div
+                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
+                    >
+                        <div class="flex items-center gap-3 mb-3">
+                            <i
+                                class="fa-solid fa-dragon text-2xl text-[#ff00aa]"
+                            ></i>
+                            <div>
+                                <h3 class="text-lg font-bold">
+                                    RPG Maker MV/MZ
+                                </h3>
+                                <p class="text-xs text-[#00ff9d]/60">
+                                    .rmmzsave, .rpgsave
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3">
+                            Save files from RPG Maker MV (2015) and RPG Maker MZ
+                            (2020). These are binary files that store game data.
+                        </p>
+                        <div class="bg-black/50 p-3 rounded text-xs">
+                            <strong class="text-[#ff00aa]"
+                                >Editing Mode:</strong
+                            >
+                            Raw Text Editor
+                        </div>
+                        <div class="mt-3 text-xs text-[#00ff9d]/70">
+                            <i
+                                class="fa-solid fa-exclamation-triangle mr-1"
+                            ></i>
+                            Opens as raw text/binary
+                            <br />
+                            <i class="fa-solid fa-code mr-1"></i> Use "Format
+                            JSON" if it contains JSON
+                            <br />
+                            <i
+                                class="fa-solid fa-triangle-exclamation mr-1"
+                            ></i>
+                            Be careful with binary data
+                        </div>
+                    </div>
+
+                    <!-- RPG Maker VX Ace/XP -->
+                    <div
+                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
+                    >
+                        <div class="flex items-center gap-3 mb-3">
+                            <i
+                                class="fa-solid fa-gamepad text-2xl text-[#00ff9d]"
+                            ></i>
+                            <div>
+                                <h3 class="text-lg font-bold">
+                                    RPG Maker VX Ace/XP
+                                </h3>
+                                <p class="text-xs text-[#00ff9d]/60">
+                                    .rvdata2, .rxdata
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3">
+                            Save files from RPG Maker VX Ace (2012) and RPG
+                            Maker XP (2004). Uses Ruby Marshal format.
+                        </p>
+                        <div class="bg-black/50 p-3 rounded text-xs">
+                            <strong class="text-[#ff00aa]"
+                                >Editing Mode:</strong
+                            >
+                            Raw Text Editor
+                        </div>
+                        <div class="mt-3 text-xs text-[#00ff9d]/70">
+                            <i
+                                class="fa-solid fa-exclamation-triangle mr-1"
+                            ></i>
+                            Binary Ruby Marshal format
+                            <br />
+                            <i class="fa-solid fa-code mr-1"></i> May contain
+                            readable strings
+                            <br />
+                            <i
+                                class="fa-solid fa-triangle-exclamation mr-1"
+                            ></i>
+                            Direct editing can corrupt saves
+                        </div>
+                    </div>
+
+                    <!-- RPG Maker 2000/2003 -->
+                    <div
+                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
+                    >
+                        <div class="flex items-center gap-3 mb-3">
+                            <i
+                                class="fa-solid fa-cube text-2xl text-[#ff00aa]"
+                            ></i>
+                            <div>
+                                <h3 class="text-lg font-bold">
+                                    RPG Maker 2000/2003
+                                </h3>
+                                <p class="text-xs text-[#00ff9d]/60">.lsd</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3">
+                            Legacy save files from RPG Maker 2000 and 2003. Uses
+                            a custom binary format.
+                        </p>
+                        <div class="bg-black/50 p-3 rounded text-xs">
+                            <strong class="text-[#ff00aa]"
+                                >Editing Mode:</strong
+                            >
+                            Raw Text Editor
+                        </div>
+                        <div class="mt-3 text-xs text-[#00ff9d]/70">
+                            <i
+                                class="fa-solid fa-exclamation-triangle mr-1"
+                            ></i>
+                            Very old binary format
+                            <br />
+                            <i class="fa-solid fa-code mr-1"></i> Limited direct
+                            editing possible
+                            <br />
+                            <i
+                                class="fa-solid fa-triangle-exclamation mr-1"
+                            ></i>
+                            Use specialized tools for best results
+                        </div>
+                    </div>
+
+                    <!-- Generic SAV -->
+                    <div
+                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
+                    >
+                        <div class="flex items-center gap-3 mb-3">
+                            <i
+                                class="fa-solid fa-floppy-disk text-2xl text-[#00ff9d]"
+                            ></i>
+                            <div>
+                                <h3 class="text-lg font-bold">Generic Saves</h3>
+                                <p class="text-xs text-[#00ff9d]/60">
+                                    .sav (various)
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3">
+                            Generic save files from many games including Wolf
+                            RPG, Unreal Engine, and many others.
+                        </p>
+                        <div class="bg-black/50 p-3 rounded text-xs">
+                            <strong class="text-[#ff00aa]"
+                                >Editing Mode:</strong
+                            >
+                            Raw Text Editor
+                        </div>
+                        <div class="mt-3 text-xs text-[#00ff9d]/70">
+                            <i
+                                class="fa-solid fa-exclamation-triangle mr-1"
+                            ></i>
+                            Format varies by game
+                            <br />
+                            <i class="fa-solid fa-code mr-1"></i> May be binary
+                            or text
+                            <br />
+                            <i class="fa-solid fa-lightbulb mr-1"></i> Try
+                            "Format JSON" if unsure
+                        </div>
+                    </div>
+
+                    <!-- Unknown Formats -->
+                    <div
+                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
+                    >
+                        <div class="flex items-center gap-3 mb-3">
+                            <i
+                                class="fa-solid fa-question text-2xl text-[#ff00aa]"
+                            ></i>
+                            <div>
+                                <h3 class="text-lg font-bold">Other Formats</h3>
+                                <p class="text-xs text-[#00ff9d]/60">
+                                    Any extension
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3">
+                            Any file type not explicitly listed will open in raw
+                            mode for direct text/binary editing.
+                        </p>
+                        <div class="bg-black/50 p-3 rounded text-xs">
+                            <strong class="text-[#ff00aa]"
+                                >Editing Mode:</strong
+                            >
+                            Raw Text Editor
+                        </div>
+                        <div class="mt-3 text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-code mr-1"></i> Full text
+                            editor with syntax
+                            <br />
+                            <i class="fa-solid fa-magic mr-1"></i> "Format JSON"
+                            button for JSON data
+                            <br />
+                            <i class="fa-solid fa-trash mr-1"></i> Clear and
+                            restart if needed
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-[#0a0a0a] border border-[#00ff9d]/20 rounded-2xl p-6 mb-6"
+                >
+                    <h3 class="text-[#ff00aa] mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info"></i> ABOUT EDITING
+                        MODES
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                        <div>
+                            <h4 class="font-bold text-[#00ff9d] mb-2">
+                                Structured Editor
+                            </h4>
+                            <p class="text-xs text-[#00ff9d]/70">
+                                For JSON-based saves. Provides dedicated inputs
+                                for money, inventory items, and variables.
+                                Changes are applied intelligently with type
+                                preservation. Safer and more user-friendly.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-[#00ff9d] mb-2">
+                                Raw Text Editor
+                            </h4>
+                            <p class="text-xs text-[#00ff9d]/70">
+                                For binary or unknown formats. Full textarea
+                                with raw content editing. Includes "Format JSON"
+                                button to pretty-print JSON data. Use with
+                                caution - can corrupt binary saves.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-[#00ff9d]/60 mb-6">
+                    <p class="mb-2">
+                        <i class="fa-solid fa-lightbulb mr-1"></i>
+                        <strong>Tip:</strong> If your save format isn't listed,
+                        try opening it anyway - Porous Editor will use raw mode
+                        and you can still edit text-based content.
+                    </p>
+                    <p>
+                        <i class="fa-solid fa-rotate mr-1"></i>
+                        Formats are automatically detected by file extension. If
+                        a format isn't working, make sure your file has the
+                        correct extension.
+                    </p>
+                </div>
+
+                <button
+                    onclick="hideFormats()"
+                    class="px-8 py-3 border border-[#00ff9d] text-[#00ff9d] rounded-2xl hover:bg-[#00ff9d]/10 transition font-bold"
+                >
+                    CLOSE
+                </button>
+            </div>
+        </div>
+
         <!-- ABOUT MODAL -->
         <div
             id="aboutModal"
@@ -128,16 +463,19 @@
                 </button>
 
                 <div class="mb-6">
-                    <i class="fa-solid fa-gamepad text-6xl text-[#00ff9d] mb-4"></i>
+                    <i
+                        class="fa-solid fa-gamepad text-6xl text-[#00ff9d] mb-4"
+                    ></i>
                     <h2 class="text-3xl mb-2">POROUS EDITOR</h2>
                     <p class="text-[#00ff9d]/70 text-sm">Version 1.0.0</p>
                 </div>
 
                 <div class="text-left space-y-4 text-sm mb-8">
                     <p>
-                        A fully</p>-featured, 100% client-side save file editor. Porous Editor
-                        supports multiple game save formats and provides an intuitive interface
-                        for editing game saves directly in your browser.
+                        A fully-featured, 100% client-side save file editor.
+                        Porous Editor supports multiple game save formats and
+                        provides an intuitive interface for editing game saves
+                        directly in your browser.
                     </p>
 
                     <div class="bg-[#0a0a0a] p-4 rounded-xl">
@@ -146,24 +484,51 @@
                         </h4>
                         <ul class="space-y-2 text-xs">
                             <li class="flex items-start gap-2">
-                                <i class="fa-solid fa-shield-halved text-[#00ff9d] mt-0.5"></i>
-                                <span><strong>100% Client-Side</strong> - All processing happens in your browser. No data is uploaded.</span>
+                                <i
+                                    class="fa-solid fa-shield-halved text-[#00ff9d] mt-0.5"
+                                ></i>
+                                <span
+                                    ><strong>100% Client-Side</strong> - All
+                                    processing happens in your browser. No data
+                                    is uploaded.</span
+                                >
                             </li>
                             <li class="flex items-start gap-2">
-                                <i class="fa-solid fa-layer-group text-[#00ff9d] mt-0.5"></i>
-                                <span><strong>Multi-Format Support</strong> - JSON/Unity, RPG Maker series, and raw files</span>
+                                <i
+                                    class="fa-solid fa-layer-group text-[#00ff9d] mt-0.5"
+                                ></i>
+                                <span
+                                    ><strong>Multi-Format Support</strong> -
+                                    JSON/Unity, RPG Maker series, and raw
+                                    files</span
+                                >
                             </li>
                             <li class="flex items-start gap-2">
-                                <i class="fa-solid fa-bolt text-[#00ff9d] mt-0.5"></i>
-                                <span><strong>Real-Time Editing</strong> - Instant preview with live updates</span>
+                                <i
+                                    class="fa-solid fa-bolt text-[#00ff9d] mt-0.5"
+                                ></i>
+                                <span
+                                    ><strong>Real-Time Editing</strong> -
+                                    Instant preview with live updates</span
+                                >
                             </li>
                             <li class="flex items-start gap-2">
-                                <i class="fa-solid fa-code text-[#00ff9d] mt-0.5"></i>
-                                <span><strong>Type-Safe</strong> - Built with TypeScript for reliability</span>
+                                <i
+                                    class="fa-solid fa-code text-[#00ff9d] mt-0.5"
+                                ></i>
+                                <span
+                                    ><strong>Type-Safe</strong> - Built with
+                                    TypeScript for reliability</span
+                                >
                             </li>
                             <li class="flex items-start gap-2">
-                                <i class="fa-solid fa-mobile-screen text-[#00ff9d] mt-0.5"></i>
-                                <span><strong>Responsive Design</strong> - Works on desktop and mobile</span>
+                                <i
+                                    class="fa-solid fa-mobile-screen text-[#00ff9d] mt-0.5"
+                                ></i>
+                                <span
+                                    ><strong>Responsive Design</strong> - Works
+                                    on desktop and mobile</span
+                                >
                             </li>
                         </ul>
                     </div>
@@ -173,26 +538,38 @@
                             <i class="fa-solid fa-file-contract"></i> LICENSE
                         </h4>
                         <p class="text-xs">
-                            Porous Editor is open source software licensed under the
-                            <a href="https://mozilla.org/MPL/2.0/" target="_blank" class="text-[#00ff9d] hover:underline">
-                                Mozilla Public License 2.0
-                            </a>.
-                            This means you are free to use, modify, and distribute this software,
-                            but modifications to MPL-licensed files must remain under MPL-2.0.
+                            Porous Editor is open source software licensed under
+                            the
+                            <a
+                                href="https://mozilla.org/MPL/2.0/"
+                                target="_blank"
+                                class="text-[#00ff9d] hover:underline"
+                            >
+                                Mozilla Public License 2.0 </a
+                            >. This means you are free to use, modify, and
+                            distribute this software, but modifications to
+                            MPL-licensed files must remain under MPL-2.0.
                         </p>
                     </div>
 
                     <div class="bg-[#0a0a0a] p-4 rounded-xl">
                         <h4 class="text-[#ff00aa] mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-keyboard"></i> KEYBOARD SHORTCUTS
+                            <i class="fa-solid fa-keyboard"></i> KEYBOARD
+                            SHORTCUTS
                         </h4>
                         <div class="grid grid-cols-2 gap-2 text-xs">
                             <div class="flex items-center gap-2">
-                                <kbd class="px-2 py-1 bg-[#111] border border-[#00ff9d]/40 rounded text-xs">Ctrl+S</kbd>
+                                <kbd
+                                    class="px-2 py-1 bg-[#111] border border-[#00ff9d]/40 rounded text-xs"
+                                    >Ctrl+S</kbd
+                                >
                                 <span>Download save</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <kbd class="px-2 py-1 bg-[#111] border border-[#00ff9d]/40 rounded text-xs">Ctrl+O</kbd>
+                                <kbd
+                                    class="px-2 py-1 bg-[#111] border border-[#00ff9d]/40 rounded text-xs"
+                                    >Ctrl+O</kbd
+                                >
                                 <span>Open file</span>
                             </div>
                         </div>
@@ -202,8 +579,13 @@
                 <div class="text-xs text-[#00ff9d]/60">
                     <p>Built with TypeScript, ESBuild, and Tailwind CSS</p>
                     <p class="mt-1">
-                        <a href="https://github.com/hackall360/Porous-Editor" target="_blank" class="hover:text-[#00ff9d] transition">
-                            <i class="fa-brands fa-github mr-1"></i> View on GitHub
+                        <a
+                            href="https://github.com/hackall360/Porous-Editor"
+                            target="_blank"
+                            class="hover:text-[#00ff9d] transition"
+                        >
+                            <i class="fa-brands fa-github mr-1"></i> View on
+                            GitHub
                         </a>
                     </p>
                 </div>
