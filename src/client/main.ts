@@ -12,7 +12,14 @@ import {
   isJsonFormat,
   isRawSaveData,
   InventoryItem,
+  detectFormatByHeader,
+  getFormatMetadata,
+  requiresParser,
+  getParserForFormat,
 } from "./types";
+
+// Parser system imports
+import { initializeParsers, parseFile } from "./parsers/loader";
 
 // ====================== Type Declarations ======================
 declare global {
@@ -108,37 +115,34 @@ function clearStoredSave(): void {
 }
 
 // ====================== File Upload Handler ======================
-function handleUpload(file: File | null): void {
+
+async function handleUpload(file: File | null): Promise<void> {
   if (!file) return;
 
   const originalName = file.name;
+
   const ext = originalName.split(".").pop()?.toLowerCase() || "";
-  const reader = new FileReader();
 
-  reader.onload = (e: ProgressEvent<FileReader>) => {
-    try {
-      let parsed: SaveData;
-      let type: "json" | "raw";
+  try {
+    // Use the new parser system for intelligent format detection
+    const result = await parseFile(file);
+    saveToLocalStorage(originalName, ext, result.data, result.type);
+    window.location.href = "editor.html";
+  } catch (err) {
+    console.error("Upload failed:", err);
+    // Fallback to raw text if parser system fails
+    const reader = new FileReader();
 
-      if (isJsonFormat(ext)) {
-        parsed = JSON.parse(e.target?.result as string) as JsonSaveData;
-        type = "json";
-      } else {
-        parsed = { raw: e.target?.result as string } as RawSaveData;
-        type = "raw";
-      }
-
-      saveToLocalStorage(originalName, ext, parsed, type);
-      window.location.href = "editor.html";
-    } catch (err) {
-      // If JSON parsing fails, treat as raw
+    reader.onload = (e: ProgressEvent<FileReader>) => {
       const rawData = { raw: e.target?.result as string } as RawSaveData;
-      saveToLocalStorage(originalName, ext, rawData, "raw");
-      window.location.href = "editor.html";
-    }
-  };
 
-  reader.readAsText(file);
+      saveToLocalStorage(originalName, ext, rawData, "raw");
+
+      window.location.href = "editor.html";
+    };
+
+    reader.readAsText(file);
+  }
 }
 
 // ====================== Editor Rendering ======================
@@ -591,10 +595,17 @@ function showNotification(message: string, duration: number = 2000): void {
 }
 
 // ====================== Initialization ======================
+
 function init(): void {
+  // Initialize parser system
+
+  initializeParsers();
+
   // Initialize - all CDN resources auto-initialize
+
   console.log(
     "%c🛠️ Porous Editor loaded – editing ready",
+
     "color:#00ff9d; font-family:monospace",
   );
 
