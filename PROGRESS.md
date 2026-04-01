@@ -25,7 +25,7 @@ Status: In Progress
 - ✅ Implement Unity PlayerPrefs parser (.xml, .plist)
 - ✅ Implement GVAS parser (Unreal Engine .sav)
 - ✅ Implement RPG Maker parser (.rpgsave, .rmmzsave)
-- ⏳ Update formats modal HTML with all new format documentation
+- ✅ Update formats modal HTML with all new format documentation
 
 - ⏳ Add comprehensive testing for format detection and parsing
 
