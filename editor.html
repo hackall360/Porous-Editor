@@ -121,330 +121,787 @@
 
         <!-- FORMATS MODAL -->
         <div
-            id="formatsModal"
-            onclick="if (event.target === this) hideFormats();"
-            class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[9999] p-4"
+<div
+        id="formatsModal"
+        onclick="if (event.target === this) hideFormats();"
+        class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[9999] p-4"
+    >
+        <div
+            class="max-w-5xl bg-[#111] border border-[#00ff9d] rounded-3xl p-8 text-center relative max-h-[90vh] overflow-y-auto"
         >
-            <div
-                class="max-w-4xl bg-[#111] border border-[#00ff9d] rounded-3xl p-8 text-center relative max-h-[90vh] overflow-y-auto"
+            <button
+                onclick="hideFormats()"
+                class="absolute top-4 right-4 text-[#ff00aa] hover:text-white text-2xl"
             >
-                <button
-                    onclick="hideFormats()"
-                    class="absolute top-4 right-4 text-[#ff00aa] hover:text-white text-2xl"
-                >
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <i class="fa-solid fa-xmark"></i>
+            </button>
 
-                <div class="mb-8">
-                    <i
-                        class="fa-solid fa-file-code text-6xl text-[#00ff9d] mb-4"
-                    ></i>
-                    <h2 class="text-3xl mb-2">SUPPORTED FORMATS</h2>
-                    <p class="text-[#00ff9d]/70 text-sm">
-                        Porous Editor can load and edit these save file formats
-                    </p>
+            <div class="mb-8">
+                <i
+                    class="fa-solid fa-file-code text-6xl text-[#00ff9d] mb-4"
+                ></i>
+                <h2 class="text-3xl mb-2">SUPPORTED FORMATS</h2>
+                <p class="text-[#00ff9d]/70 text-sm">
+                    Porous Editor can load and edit these save file formats
+                </p>
+            </div>
+
+            <!-- Category: Unity & JSON -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-cube"></i> Unity & JSON Formats
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- JSON -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-code text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">JSON</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.json</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Structured JSON files from Unity games, Ren'Py visual novels, and other engines.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Full structured editing
+                            <br><i class="fa-solid fa-check mr-1"></i> Type preservation
+                        </div>
+                    </div>
+
+                    <!-- Unity Save -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-floppy-disk text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Unity Save</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.save</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Unity PlayerPrefs or custom JSON saves. Same capabilities as JSON.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Auto-detects common fields
+                        </div>
+                    </div>
+
+                    <!-- ES3 (Easy Save 3) -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-database text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">ES3 (Easy Save 3)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.es3</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Unity Easy Save 3 binary format. Stores serialized Unity objects.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Binary format
+                            <br><i class="fa-solid fa-code mr-1"></i> May contain readable strings
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <div
-                    class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left mb-8"
-                >
-                    <!-- JSON / Unity -->
-                    <div
-                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
-                    >
+            <!-- Category: Unreal Engine -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-engine-warning"></i> Unreal Engine Formats
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- GVAS -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
-                            <i
-                                class="fa-solid fa-code text-2xl text-[#00ff9d]"
-                            ></i>
+                            <i class="fa-solid fa-file-export text-xl text-[#00ff9d]"></i>
                             <div>
-                                <h3 class="text-lg font-bold">JSON / Unity</h3>
-                                <p class="text-xs text-[#00ff9d]/60">
-                                    .json, .save
-                                </p>
+                                <h4 class="font-bold">GVAS (Unreal Engine)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.sav</p>
                             </div>
                         </div>
-                        <p class="text-sm mb-3">
-                            Structured JSON files from Unity games, Ren'Py
-                            visual novels, and other engines that save as JSON.
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Unreal Engine save files with property serialization. Supports compression detection.
                         </p>
-                        <div class="bg-black/50 p-3 rounded text-xs">
-                            <strong class="text-[#ff00aa]"
-                                >Editing Mode:</strong
-                            >
-                            Structured Editor
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
                         </div>
-                        <div class="mt-3 text-xs text-[#00ff9d]/70">
-                            <i class="fa-solid fa-check mr-1"></i> Auto-detects
-                            money/gold fields
-                            <br />
-                            <i class="fa-solid fa-check mr-1"></i> Parses
-                            inventory items
-                            <br />
-                            <i class="fa-solid fa-check mr-1"></i> Edits
-                            numeric/string variables
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Stable (uncompressed)
+                            <br><i class="fa-solid fa-check mr-1"></i> Property extraction
+                            <br><i class="fa-solid fa-code mr-1"></i> Auto-detects compression
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: Minecraft -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-cube"></i> Minecraft Formats
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- NBT -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-tags text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">NBT (Named Binary Tag)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.nbt</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Minecraft NBT format for player data, structures, and inventory.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Stable
+                            <br><i class="fa-solid fa-check mr-1"></i> Supports gzip/zlib
+                            <br><i class="fa-solid fa-check mr-1"></i> All tag types
                         </div>
                     </div>
 
+                    <!-- Region Files -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-map text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Minecraft Region</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.mca (Anvil), .mcr (Beta)</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Region files containing multiple NBT chunks. Auto-detects compression.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Experimental
+                            <br><i class="fa-solid fa-code mr-1"></i> Chunk extraction
+                            <br><i class="fa-solid fa-exclamation-triangle mr-1"></i> Complex structure
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: RPG Maker -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-dragon"></i> RPG Maker Formats
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
                     <!-- RPG Maker MV/MZ -->
-                    <div
-                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
-                    >
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
-                            <i
-                                class="fa-solid fa-dragon text-2xl text-[#ff00aa]"
-                            ></i>
+                            <i class="fa-solid fa-dragon text-xl text-[#ff00aa]"></i>
                             <div>
-                                <h3 class="text-lg font-bold">
-                                    RPG Maker MV/MZ
-                                </h3>
-                                <p class="text-xs text-[#00ff9d]/60">
-                                    .rmmzsave, .rpgsave
-                                </p>
+                                <h4 class="font-bold">RPG Maker MV/MZ</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.rmmzsave, .rpgsave</p>
                             </div>
                         </div>
-                        <p class="text-sm mb-3">
-                            Save files from RPG Maker MV (2015) and RPG Maker MZ
-                            (2020). These are binary files that store game data.
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Compressed JSON saves from RPG Maker MV (2015) and MZ (2020).
                         </p>
-                        <div class="bg-black/50 p-3 rounded text-xs">
-                            <strong class="text-[#ff00aa]"
-                                >Editing Mode:</strong
-                            >
-                            Raw Text Editor
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
                         </div>
-                        <div class="mt-3 text-xs text-[#00ff9d]/70">
-                            <i
-                                class="fa-solid fa-exclamation-triangle mr-1"
-                            ></i>
-                            Opens as raw text/binary
-                            <br />
-                            <i class="fa-solid fa-code mr-1"></i> Use "Format
-                            JSON" if it contains JSON
-                            <br />
-                            <i
-                                class="fa-solid fa-triangle-exclamation mr-1"
-                            ></i>
-                            Be careful with binary data
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Stable (LZString)
+                            <br><i class="fa-solid fa-code mr-1"></i> Auto-detects compression
+                            <br><i class="fa-solid fa-check mr-1"></i> Preserves structure
                         </div>
                     </div>
 
-                    <!-- RPG Maker VX Ace/XP -->
-                    <div
-                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
-                    >
+                    <!-- RPG Maker VX Ace -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
-                            <i
-                                class="fa-solid fa-gamepad text-2xl text-[#00ff9d]"
-                            ></i>
+                            <i class="fa-solid fa-gamepad text-xl text-[#00ff9d]"></i>
                             <div>
-                                <h3 class="text-lg font-bold">
-                                    RPG Maker VX Ace/XP
-                                </h3>
-                                <p class="text-xs text-[#00ff9d]/60">
-                                    .rvdata2, .rxdata
-                                </p>
+                                <h4 class="font-bold">RPG Maker VX Ace</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.rvdata2</p>
                             </div>
                         </div>
-                        <p class="text-sm mb-3">
-                            Save files from RPG Maker VX Ace (2012) and RPG
-                            Maker XP (2004). Uses Ruby Marshal format.
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Ruby Marshal compressed format from RPG Maker VX Ace (2012).
                         </p>
-                        <div class="bg-black/50 p-3 rounded text-xs">
-                            <strong class="text-[#ff00aa]"
-                                >Editing Mode:</strong
-                            >
-                            Raw Text Editor
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
                         </div>
-                        <div class="mt-3 text-xs text-[#00ff9d]/70">
-                            <i
-                                class="fa-solid fa-exclamation-triangle mr-1"
-                            ></i>
-                            Binary Ruby Marshal format
-                            <br />
-                            <i class="fa-solid fa-code mr-1"></i> May contain
-                            readable strings
-                            <br />
-                            <i
-                                class="fa-solid fa-triangle-exclamation mr-1"
-                            ></i>
-                            Direct editing can corrupt saves
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Binary Ruby Marshal
+                            <br><i class="fa-solid fa-code mr-1"></i> May contain readable strings
+                        </div>
+                    </div>
+
+                    <!-- RPG Maker XP/VX -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-tv text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">RPG Maker XP/VX</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.rxdata</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Ruby Marshal format from RPG Maker XP (2004) and VX (2007).
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Legacy binary format
                         </div>
                     </div>
 
                     <!-- RPG Maker 2000/2003 -->
-                    <div
-                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
-                    >
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
-                            <i
-                                class="fa-solid fa-cube text-2xl text-[#ff00aa]"
-                            ></i>
+                            <i class="fa-solid fa-cube text-xl text-[#ff00aa]"></i>
                             <div>
-                                <h3 class="text-lg font-bold">
-                                    RPG Maker 2000/2003
-                                </h3>
+                                <h4 class="font-bold">RPG Maker 2000/2003</h4>
                                 <p class="text-xs text-[#00ff9d]/60">.lsd</p>
                             </div>
                         </div>
-                        <p class="text-sm mb-3">
-                            Legacy save files from RPG Maker 2000 and 2003. Uses
-                            a custom binary format.
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Legacy binary save format from RPG Maker 2000 and 2003.
                         </p>
-                        <div class="bg-black/50 p-3 rounded text-xs">
-                            <strong class="text-[#ff00aa]"
-                                >Editing Mode:</strong
-                            >
-                            Raw Text Editor
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
                         </div>
-                        <div class="mt-3 text-xs text-[#00ff9d]/70">
-                            <i
-                                class="fa-solid fa-exclamation-triangle mr-1"
-                            ></i>
-                            Very old binary format
-                            <br />
-                            <i class="fa-solid fa-code mr-1"></i> Limited direct
-                            editing possible
-                            <br />
-                            <i
-                                class="fa-solid fa-triangle-exclamation mr-1"
-                            ></i>
-                            Use specialized tools for best results
-                        </div>
-                    </div>
-
-                    <!-- Generic SAV -->
-                    <div
-                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
-                    >
-                        <div class="flex items-center gap-3 mb-3">
-                            <i
-                                class="fa-solid fa-floppy-disk text-2xl text-[#00ff9d]"
-                            ></i>
-                            <div>
-                                <h3 class="text-lg font-bold">Generic Saves</h3>
-                                <p class="text-xs text-[#00ff9d]/60">
-                                    .sav (various)
-                                </p>
-                            </div>
-                        </div>
-                        <p class="text-sm mb-3">
-                            Generic save files from many games including Wolf
-                            RPG, Unreal Engine, and many others.
-                        </p>
-                        <div class="bg-black/50 p-3 rounded text-xs">
-                            <strong class="text-[#ff00aa]"
-                                >Editing Mode:</strong
-                            >
-                            Raw Text Editor
-                        </div>
-                        <div class="mt-3 text-xs text-[#00ff9d]/70">
-                            <i
-                                class="fa-solid fa-exclamation-triangle mr-1"
-                            ></i>
-                            Format varies by game
-                            <br />
-                            <i class="fa-solid fa-code mr-1"></i> May be binary
-                            or text
-                            <br />
-                            <i class="fa-solid fa-lightbulb mr-1"></i> Try
-                            "Format JSON" if unsure
-                        </div>
-                    </div>
-
-                    <!-- Unknown Formats -->
-                    <div
-                        class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-2xl p-6"
-                    >
-                        <div class="flex items-center gap-3 mb-3">
-                            <i
-                                class="fa-solid fa-question text-2xl text-[#ff00aa]"
-                            ></i>
-                            <div>
-                                <h3 class="text-lg font-bold">Other Formats</h3>
-                                <p class="text-xs text-[#00ff9d]/60">
-                                    Any extension
-                                </p>
-                            </div>
-                        </div>
-                        <p class="text-sm mb-3">
-                            Any file type not explicitly listed will open in raw
-                            mode for direct text/binary editing.
-                        </p>
-                        <div class="bg-black/50 p-3 rounded text-xs">
-                            <strong class="text-[#ff00aa]"
-                                >Editing Mode:</strong
-                            >
-                            Raw Text Editor
-                        </div>
-                        <div class="mt-3 text-xs text-[#00ff9d]/70">
-                            <i class="fa-solid fa-code mr-1"></i> Full text
-                            editor with syntax
-                            <br />
-                            <i class="fa-solid fa-magic mr-1"></i> "Format JSON"
-                            button for JSON data
-                            <br />
-                            <i class="fa-solid fa-trash mr-1"></i> Clear and
-                            restart if needed
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Very old format
                         </div>
                     </div>
                 </div>
-
-                <div
-                    class="bg-[#0a0a0a] border border-[#00ff9d]/20 rounded-2xl p-6 mb-6"
-                >
-                    <h3 class="text-[#ff00aa] mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-info"></i> ABOUT EDITING
-                        MODES
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                        <div>
-                            <h4 class="font-bold text-[#00ff9d] mb-2">
-                                Structured Editor
-                            </h4>
-                            <p class="text-xs text-[#00ff9d]/70">
-                                For JSON-based saves. Provides dedicated inputs
-                                for money, inventory items, and variables.
-                                Changes are applied intelligently with type
-                                preservation. Safer and more user-friendly.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-[#00ff9d] mb-2">
-                                Raw Text Editor
-                            </h4>
-                            <p class="text-xs text-[#00ff9d]/70">
-                                For binary or unknown formats. Full textarea
-                                with raw content editing. Includes "Format JSON"
-                                button to pretty-print JSON data. Use with
-                                caution - can corrupt binary saves.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-xs text-[#00ff9d]/60 mb-6">
-                    <p class="mb-2">
-                        <i class="fa-solid fa-lightbulb mr-1"></i>
-                        <strong>Tip:</strong> If your save format isn't listed,
-                        try opening it anyway - Porous Editor will use raw mode
-                        and you can still edit text-based content.
-                    </p>
-                    <p>
-                        <i class="fa-solid fa-rotate mr-1"></i>
-                        Formats are automatically detected by file extension. If
-                        a format isn't working, make sure your file has the
-                        correct extension.
-                    </p>
-                </div>
-
-                <button
-                    onclick="hideFormats()"
-                    class="px-8 py-3 border border-[#00ff9d] text-[#00ff9d] rounded-2xl hover:bg-[#00ff9d]/10 transition font-bold"
-                >
-                    CLOSE
-                </button>
             </div>
+
+            <!-- Category: Bethesda -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-dragon"></i> Bethesda Games
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- ESS -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-save text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Bethesda ESS</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.ess (Elder Scrolls)</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Save files from The Elder Scrolls series (Skyrim, Oblivion, etc.).
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured (Experimental)
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Experimental
+                            <br><i class="fa-solid fa-code mr-1"></i> Header detection (TESV)
+                            <br><i class="fa-solid fa-exclamation-triangle mr-1"></i> Complex format
+                        </div>
+                    </div>
+
+                    <!-- BESS -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-file-archive text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">BESS (Fallout 3/NV)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.bess (Fallout)</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Fallout 3 and New Vegas save files (variant of ESS format).
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Read-only recommended
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: Terraria -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-mountain"></i> Terraria
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- Terraria World -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-globe text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Terraria World</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.wld</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Terraria world save files with terrain, blocks, and NPC data.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured (Experimental)
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Experimental
+                            <br><i class="fa-solid fa-code mr-1"></i> Binary chunk parser
+                        </div>
+                    </div>
+
+                    <!-- Terraria Player -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-user text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Terraria Player</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.plr</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Terraria player character saves with inventory, stats, and equipment.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured (Experimental)
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Experimental
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: Strategy Games -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chess"></i> Strategy Games
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- StarCraft 2 -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-space-shuttle text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">StarCraft 2</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.sc2save</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            StarCraft 2 replay and save files. Proprietary binary format.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Read-only recommended
+                            <br><i class="fa-solid fa-code mr-1"></i> Complex proprietary format
+                        </div>
+                    </div>
+
+                    <!-- Age of Empires -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-crown text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Age of Empires</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.mgz</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Age of Empires II save games (compressed game state).
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Read-only only
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: GameMaker -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-gamepad"></i> GameMaker Studio
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- GameMaker -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-dice text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">GameMaker Save</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.gam</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            GameMaker Studio save files with INI-style or binary data.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-code mr-1"></i> May contain readable text
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: Emulator Saves -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-compact-disc"></i> Emulator Save Formats
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- SRM -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-memory text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">SRM (SNES/Genesis)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.srm</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Raw cartridge save data from SNES, Genesis, and other retro consoles.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Pure binary data
+                            <br><i class="fa-solid fa-code mr-1"></i> Hex editing only
+                        </div>
+                    </div>
+
+                    <!-- DSV -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-cartridge text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">DSV (DeSmuME)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.dsv</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            DeSmuME Nintendo DS save files. Raw cartridge backup format.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Binary format
+                        </div>
+                    </div>
+
+                    <!-- PS2 Save -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-playstation text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">PlayStation 2 Save</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.p2s</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            PS2 memory card save files. May require decryption.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Encrypted on real hardware
+                        </div>
+                    </div>
+
+                    <!-- PS2 Memory Card -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-memory-bank text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">PS2 Memory Card</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.ps2, .mc</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Full PS2 memory card images. Contains multiple saves with filesystem.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Complex filesystem
+                        </div>
+                    </div>
+
+                    <!-- SNES9x State -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-pause-circle text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">SNES9x State</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.frz</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            SNES9x emulator save state files. Complete RAM/register snapshot.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Complete system state
+                        </div>
+                    </div>
+
+                    <!-- EEPROM -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-microchip text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">EEPROM Save</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.eep</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Raw EEPROM data from various cartridge-based games.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-code mr-1"></i> Small binary blocks
+                        </div>
+                    </div>
+
+                    <!-- MPK -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-party-horn text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">MPK (Mario Party)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.mpk</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Mario Party save files for Nintendo 64 and GameCube.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Proprietary format
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: Databases & XML -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-database"></i> Databases & Structured Text
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- SQLite -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-table text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">SQLite Database</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.sqlite, .db, .sqlite3</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            SQLite database files. Read-only access to table structures.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Read-Only Browser
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Read-only (no writes)
+                            <br><i class="fa-solid fa-code mr-1"></i> Table structure view
+                        </div>
+                    </div>
+
+                    <!-- Unity XML PlayerPrefs -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-file-code text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Unity PlayerPrefs (XML)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.xml</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Unity PlayerPrefs exported as XML. Human-readable key-value store.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Stable
+                            <br><i class="fa-solid fa-check mr-1"></i> Type preservation (int, float, string, bool)
+                        </div>
+                    </div>
+
+                    <!-- PLIST -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-brands fa-apple text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">PLIST (macOS/iOS)</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.plist</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Apple property list format. Used by Unity on Apple platforms.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Structured Editor
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-check mr-1"></i> Round-trip: Stable
+                            <br><i class="fa-solid fa-check mr-1"></i> XML-based format
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: Generic & Raw -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#ff00aa] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-box-open"></i> Generic & Raw Formats
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <!-- Generic DAT -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-file text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Generic DAT</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.dat</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Generic data files. Format varies by application. May be text or binary.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-code mr-1"></i> Try "Format JSON" if unsure
+                        </div>
+                    </div>
+
+                    <!-- Generic Binary -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-binary text-xl text-[#00ff9d]"></i>
+                            <div>
+                                <h4 class="font-bold">Generic Binary</h4>
+                                <p class="text-xs text-[#00ff9d]/60">.bin</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Raw binary files. No structure detection, pure hex/text editing.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Hex / Binary
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-exclamation-triangle mr-1"></i> Use with extreme caution
+                        </div>
+                    </div>
+
+                    <!-- Unknown/Raw Fallback -->
+                    <div class="bg-[#0a0a0a] border border-[#00ff9d]/30 rounded-xl p-5 col-span-1 md:col-span-2">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-question text-xl text-[#ff00aa]"></i>
+                            <div>
+                                <h4 class="font-bold">Unknown Formats / Raw Fallback</h4>
+                                <p class="text-xs text-[#00ff9d]/60">Any other extension</p>
+                            </div>
+                        </div>
+                        <p class="text-sm mb-3 text-[#00ff9d]/80">
+                            Files with unrecognized extensions fall back to raw text/binary mode. You can still edit text content and use "Format JSON" to pretty-print JSON data if present.
+                        </p>
+                        <div class="bg-black/50 p-2 rounded text-xs mb-2">
+                            <strong class="text-[#ff00aa]">Editing Mode:</strong> Raw Text Editor
+                        </div>
+                        <div class="text-xs text-[#00ff9d]/70">
+                            <i class="fa-solid fa-code mr-1"></i> Full textarea with syntax highlighting
+                            <br><i class="fa-solid fa-magic mr-1"></i> "Format JSON" button for JSON data
+                            <br><i class="fa-solid fa-trash mr-1"></i> Clear and restart if needed
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Editing Modes -->
+            <div class="bg-[#0a0a0a] border border-[#00ff9d]/20 rounded-2xl p-6 mb-6">
+                <h3 class="text-[#ff00aa] mb-4 flex items-center gap-2 text-lg">
+                    <i class="fa-solid fa-circle-info"></i> About Editing Modes
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div>
+                        <h4 class="font-bold text-[#00ff9d] mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-wrench"></i> Structured Editor
+                        </h4>
+                        <p class="text-xs text-[#00ff9d]/70 leading-relaxed">
+                            For JSON-based and parser-supported formats. Provides dedicated inputs for common fields like money, inventory, and variables. Changes are applied intelligently with type preservation. Safer and more user-friendly than raw editing.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-[#00ff9d] mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-terminal"></i> Raw Text Editor
+                        </h4>
+                        <p class="text-xs text-[#00ff9d]/70 leading-relaxed">
+                            For binary or unknown formats. Full textarea with raw content editing. Includes "Format JSON" button to pretty-print JSON data. Use with caution - direct editing of binary formats can corrupt saves. Best for text-based formats or advanced users.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="text-xs text-[#00ff9d]/60 mb-6">
+                <p class="mb-3 flex items-start gap-2">
+                    <i class="fa-solid fa-lightbulb mt-0.5"></i>
+                    <strong>Tip:</strong> If your save</strong> format isn't explicitly listed, try opening it anyway - Porous Editor will use raw mode and you can still edit any text-based content. Many formats are detected automatically by file header (magic bytes), not just extension.
+                </p>
+                <p class="flex items-start gap-2">
+                    <i class="fa-solid fa-rotate mt-0.5"></i>
+                    <strong>Format Detection:</strong> Formats are detected by file extension first, then by header magic bytes if available. If a format isn't working, ensure your file has the correct extension or try renaming it to match a supported format.
+                </p>
+            </div>
+
+            <button
+                onclick="hideFormats()"
+                class="px-8 py-3 border border-[#00ff9d] text-[#00ff9d] rounded-2xl hover:bg-[#00ff9d]/10 transition font-bold"
+            >
+                CLOSE
+            </button>
         </div>
+    </div>
+
+            </div>
 
         <!-- ABOUT MODAL -->
         <div
