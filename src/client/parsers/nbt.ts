@@ -82,7 +82,7 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     try {
       const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
       const format = this.format === "littleVarint" ? "little" : this.format;
-      const result = this.parseNbt(view, 0, format);
+      const { value: result } = this.parseTag(view, 0, format);
 
       return {
         data: result,
@@ -158,63 +158,78 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
   }
 
   /**
-   * Parse NBT data from a DataView
+   * Parse a single NBT tag and return its value plus bytes consumed
    */
-  private parseNbt(
+  private parseTag(
     view: DataView,
     offset: number,
     format: "big" | "little",
-  ): NbtData {
+  ): { value: NbtData; bytesRead: number } {
     const tagType = view.getUint8(offset);
-    offset += 1;
+    let pos = offset + 1;
 
     if (tagType === TAG_END) {
       throw new Error("Unexpected TAG_END at root level");
     }
 
     // Read name (string)
-    const nameLength = this.readShort(view, offset, format);
-    offset += 2;
-    const name = this.readNbtString(view, offset, nameLength);
-    offset += nameLength;
+    const nameLength = this.readShort(view, pos, format);
+    pos += 2;
+    const name = this.readNbtString(view, pos, nameLength);
+    pos += nameLength;
 
     // Parse payload based on tag type
-    const payload = this.parseTagPayload(view, offset, tagType, format);
+    const { value, bytesRead } = this.parseTagPayload(
+      view,
+      pos,
+      tagType,
+      format,
+    );
+    pos += bytesRead;
 
     return {
-      type: this.tagTypeToString(tagType),
-      name,
-      value: payload,
+      value: {
+        type: this.tagTypeToString(tagType),
+        name,
+        value,
+      },
+      bytesRead: pos - offset,
     };
   }
 
   /**
-   * Parse a tag's payload based on its type
+   * Parse a tag's payload based on its type, returning value and bytes consumed
    */
   private parseTagPayload(
     view: DataView,
     offset: number,
     tagType: number,
     format: "big" | "little",
-  ): NbtValue {
+  ): { value: NbtValue; bytesRead: number } {
     switch (tagType) {
       case TAG_BYTE:
-        return view.getInt8(offset);
+        return { value: view.getInt8(offset), bytesRead: 1 };
 
       case TAG_SHORT:
-        return this.readShort(view, offset, format);
+        return { value: this.readShort(view, offset, format), bytesRead: 2 };
 
       case TAG_INT:
-        return this.readInt(view, offset, format);
+        return { value: this.readInt(view, offset, format), bytesRead: 4 };
 
       case TAG_LONG:
-        return this.readLong(view, offset, format);
+        return { value: this.readLong(view, offset, format), bytesRead: 8 };
 
       case TAG_FLOAT:
-        return view.getFloat32(offset, format === "big" ? false : true);
+        return {
+          value: view.getFloat32(offset, format === "big" ? false : true),
+          bytesRead: 4,
+        };
 
       case TAG_DOUBLE:
-        return view.getFloat64(offset, format === "big" ? false : true);
+        return {
+          value: view.getFloat64(offset, format === "big" ? false : true),
+          bytesRead: 8,
+        };
 
       case TAG_BYTE_ARRAY:
         return this.parseByteArray(view, offset, format);
@@ -291,75 +306,79 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     view: DataView,
     offset: number,
     format: "big" | "little",
-  ): string {
+  ): { value: string; bytesRead: number } {
     const length = this.readShort(view, offset, format);
-    offset += 2;
-    const bytes = new Uint8Array(view.buffer, offset, length);
-    return safeDecode(bytes);
+    const bytes = new Uint8Array(view.buffer, offset + 2, length);
+    return { value: safeDecode(bytes), bytesRead: 2 + length };
   }
 
   private parseByteArray(
     view: DataView,
     offset: number,
-    format: "big" | "little",
-  ): number[] {
-    const length = this.readInt(view, offset, format);
-    offset += 4;
+    _format: "big" | "little",
+  ): { value: number[]; bytesRead: number } {
+    const length = this.readInt(view, offset, _format);
     const result: number[] = [];
     for (let i = 0; i < length; i++) {
-      result.push(view.getInt8(offset + i));
+      result.push(view.getInt8(offset + 4 + i));
     }
-    return result;
+    return { value: result, bytesRead: 4 + length };
   }
 
   private parseIntArray(
     view: DataView,
     offset: number,
     format: "big" | "little",
-  ): number[] {
+  ): { value: number[]; bytesRead: number } {
     const length = this.readInt(view, offset, format);
-    offset += 4;
     const result: number[] = [];
     for (let i = 0; i < length; i++) {
-      result.push(this.readInt(view, offset + i * 4, format));
+      result.push(this.readInt(view, offset + 4 + i * 4, format));
     }
-    return result;
+    return { value: result, bytesRead: 4 + length * 4 };
   }
 
   private parseLongArray(
     view: DataView,
     offset: number,
     format: "big" | "little",
-  ): bigint[] {
+  ): { value: bigint[]; bytesRead: number } {
     const length = this.readInt(view, offset, format);
-    offset += 4;
     const result: bigint[] = [];
     for (let i = 0; i < length; i++) {
-      result.push(this.readLong(view, offset + i * 8, format));
+      result.push(this.readLong(view, offset + 4 + i * 8, format));
     }
-    return result;
+    return { value: result, bytesRead: 4 + length * 8 };
   }
 
   private parseList(
     view: DataView,
     offset: number,
     format: "big" | "little",
-  ): NbtList {
+  ): { value: NbtList; bytesRead: number } {
     const tagType = view.getUint8(offset);
-    offset += 1;
-    const length = this.readInt(view, offset, format);
-    offset += 4;
+    let pos = offset + 1;
+    const length = this.readInt(view, pos, format);
+    pos += 4;
 
     const items: NbtValue[] = [];
     for (let i = 0; i < length; i++) {
-      items.push(this.parseTagValue(view, offset, tagType, format));
-      // Advance offset based on tag size (simplified - would need proper size calculation)
-      offset = this.advanceOffset(view, offset, tagType, format);
+      const { value, bytesRead } = this.parseTagPayload(
+        view,
+        pos,
+        tagType,
+        format,
+      );
+      items.push(value);
+      pos += bytesRead;
     }
 
     return {
-      type: this.tagTypeToString(tagType),
-      values: items,
+      value: {
+        type: this.tagTypeToString(tagType),
+        values: items,
+      },
+      bytesRead: pos - offset,
     };
   }
 
@@ -367,21 +386,26 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     view: DataView,
     offset: number,
     format: "big" | "little",
-  ): NbtCompound {
+  ): { value: NbtCompound; bytesRead: number } {
     const entries: NbtData[] = [];
+    let pos = offset;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
-      const tagType = view.getUint8(offset);
+      const tagType = view.getUint8(pos);
       if (tagType === TAG_END) {
-        offset += 1;
+        pos += 1;
         break;
       }
 
-      const nameLength = this.readShort(view, offset + 1, format);
-      const name = this.readNbtString(view, offset + 3, nameLength);
-      const payloadOffset = offset + 3 + nameLength;
-      const value = this.parseTagPayload(view, payloadOffset, tagType, format);
+      const nameLength = this.readShort(view, pos + 1, format);
+      const name = this.readNbtString(view, pos + 3, nameLength);
+      const payloadOffset = pos + 3 + nameLength;
+      const { value, bytesRead } = this.parseTagPayload(
+        view,
+        payloadOffset,
+        tagType,
+        format,
+      );
 
       entries.push({
         type: this.tagTypeToString(tagType),
@@ -389,39 +413,17 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
         value,
       });
 
-      offset = this.advanceOffset(view, payloadOffset, tagType, format);
+      pos = payloadOffset + bytesRead;
     }
 
-    return { type: "compound", entries };
+    return {
+      value: { type: "compound", entries },
+      bytesRead: pos - offset,
+    };
   }
 
-  private parseTagValue(
-    view: DataView,
-    offset: number,
-    tagType: number,
-    format: "big" | "little",
-  ): NbtValue {
-    return this.parseTagPayload(view, offset, tagType, format);
-  }
-
-  /**
-   * Calculate the number of bytes consumed by a tag
-   * This is a simplified version - for production, implement proper size tracking
-   */
-  private advanceOffset(
-    _view: DataView,
-    offset: number,
-    _tagType: number,
-    _format: "big" | "little",
-  ): number {
-    // This is a simplified implementation
-    // A full implementation would track exact byte consumption during parsing
-    // For now, we'll return a placeholder - the recursive parse already advances correctly
-    void _view;
-    void _tagType;
-    void _format;
-    return offset; // The recursive calls already track offset properly
-  }
+  // parseTagValue removed - use parseTagPayload directly which now returns { value, bytesRead }
+  // advanceOffset removed - offset tracking is now handled by bytesRead return values
 
   private tagTypeToString(tagType: number): string {
     const types: Record<number, string> = {
@@ -480,21 +482,239 @@ export interface NbtData {
  */
 export function serializeNbt(
   data: NbtData,
-  _format: "big" | "little" = "big",
+  format: "big" | "little" = "big",
 ): ArrayBuffer {
-  void _format;
-  // This is a placeholder - full serialization is complex
-  // For now, we'll convert to JSON string as fallback
-  const json = JSON.stringify(data, (_key, value) => {
-    if (typeof value === "bigint") {
-      return value.toString();
-    }
-    return value;
-  });
+  const parts: Uint8Array[] = [];
+  serializeTag(data, format, parts);
+  const totalSize = parts.reduce((sum, p) => sum + p.byteLength, 0);
+  const result = new Uint8Array(totalSize);
+  let offset = 0;
+  for (const part of parts) {
+    result.set(part, offset);
+    offset += part.byteLength;
+  }
+  return result.buffer;
+}
 
-  // Create a simple NBT structure with string payload
-  // Real implementation would need to properly encode all tag types
-  return new TextEncoder().encode(json).buffer;
+function stringToBytes(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}
+
+function writeShort(value: number, format: "big" | "little"): Uint8Array {
+  const buf = new ArrayBuffer(2);
+  const view = new DataView(buf);
+  view.setInt16(0, value, format !== "big");
+  return new Uint8Array(buf);
+}
+
+function writeInt(value: number, format: "big" | "little"): Uint8Array {
+  const buf = new ArrayBuffer(4);
+  const view = new DataView(buf);
+  view.setInt32(0, value, format !== "big");
+  return new Uint8Array(buf);
+}
+
+function writeLong(value: bigint, format: "big" | "little"): Uint8Array {
+  const buf = new ArrayBuffer(8);
+  const view = new DataView(buf);
+  const low = Number(value & BigInt(0xffffffff));
+  const high = Number((value >> BigInt(32)) & BigInt(0xffffffff));
+  if (format === "big") {
+    view.setUint32(0, high);
+    view.setUint32(4, low >>> 0);
+  } else {
+    view.setUint32(0, low >>> 0, true);
+    view.setUint32(4, high, true);
+  }
+  return new Uint8Array(buf);
+}
+
+function tagTypeToByte(type: string): number {
+  const map: Record<string, number> = {
+    end: 0,
+    byte: 1,
+    short: 2,
+    int: 3,
+    long: 4,
+    float: 5,
+    double: 6,
+    "byte-array": 7,
+    string: 8,
+    list: 9,
+    compound: 10,
+    "int-array": 11,
+    "long-array": 12,
+  };
+  return map[type] ?? 0;
+}
+
+function serializeTag(
+  data: NbtData,
+  format: "big" | "little",
+  parts: Uint8Array[],
+): void {
+  const tagType = tagTypeToByte(data.type);
+  parts.push(new Uint8Array([tagType]));
+  const nameBytes = stringToBytes(data.name);
+  parts.push(writeShort(nameBytes.byteLength, format));
+  parts.push(nameBytes);
+  serializeTagPayload(data.type, data.value, format, parts);
+}
+
+function serializeTagPayload(
+  type: string,
+  value: NbtValue,
+  format: "big" | "little",
+  parts: Uint8Array[],
+): void {
+  switch (type) {
+    case "byte":
+      parts.push(new Uint8Array([value as number]));
+      break;
+
+    case "short":
+      parts.push(writeShort(value as number, format));
+      break;
+
+    case "int":
+      parts.push(writeInt(value as number, format));
+      break;
+
+    case "long":
+      parts.push(writeLong(value as bigint, format));
+      break;
+
+    case "float": {
+      const buf = new ArrayBuffer(4);
+      new DataView(buf).setFloat32(0, value as number, format !== "big");
+      parts.push(new Uint8Array(buf));
+      break;
+    }
+
+    case "double": {
+      const buf = new ArrayBuffer(8);
+      new DataView(buf).setFloat64(0, value as number, format !== "big");
+      parts.push(new Uint8Array(buf));
+      break;
+    }
+
+    case "string": {
+      const strBytes = stringToBytes(value as string);
+      parts.push(writeShort(strBytes.byteLength, format));
+      parts.push(strBytes);
+      break;
+    }
+
+    case "byte-array": {
+      const arr = value as number[];
+      parts.push(writeInt(arr.length, format));
+      parts.push(new Uint8Array(arr));
+      break;
+    }
+
+    case "int-array": {
+      const arr = value as number[];
+      parts.push(writeInt(arr.length, format));
+      for (const v of arr) {
+        parts.push(writeInt(v, format));
+      }
+      break;
+    }
+
+    case "long-array": {
+      const arr = value as bigint[];
+      parts.push(writeInt(arr.length, format));
+      for (const v of arr) {
+        parts.push(writeLong(v, format));
+      }
+      break;
+    }
+
+    case "list": {
+      const list = value as NbtList;
+      const elemType = tagTypeToByte(list.type);
+      parts.push(new Uint8Array([elemType]));
+      parts.push(writeInt(list.values.length, format));
+      for (const elem of list.values) {
+        serializeListElement(list.type, elem, format, parts);
+      }
+      break;
+    }
+
+    case "compound": {
+      const compound = value as NbtCompound;
+      for (const entry of compound.entries) {
+        serializeTag(entry, format, parts);
+      }
+      parts.push(new Uint8Array([TAG_END]));
+      break;
+    }
+
+    default:
+      throw new Error(`Cannot serialize unknown NBT type: ${type}`);
+  }
+}
+
+function serializeListElement(
+  type: string,
+  value: NbtValue,
+  format: "big" | "little",
+  parts: Uint8Array[],
+): void {
+  // List elements don't have name/type headers, just raw payload
+  switch (type) {
+    case "byte":
+      parts.push(new Uint8Array([value as number]));
+      break;
+    case "short":
+      parts.push(writeShort(value as number, format));
+      break;
+    case "int":
+      parts.push(writeInt(value as number, format));
+      break;
+    case "long":
+      parts.push(writeLong(value as bigint, format));
+      break;
+    case "float": {
+      const buf = new ArrayBuffer(4);
+      new DataView(buf).setFloat32(0, value as number, format !== "big");
+      parts.push(new Uint8Array(buf));
+      break;
+    }
+    case "double": {
+      const buf = new ArrayBuffer(8);
+      new DataView(buf).setFloat64(0, value as number, format !== "big");
+      parts.push(new Uint8Array(buf));
+      break;
+    }
+    case "string": {
+      const strBytes = stringToBytes(value as string);
+      parts.push(writeShort(strBytes.byteLength, format));
+      parts.push(strBytes);
+      break;
+    }
+    case "compound": {
+      const compound = value as NbtCompound;
+      for (const entry of compound.entries) {
+        serializeTag(entry, format, parts);
+      }
+      parts.push(new Uint8Array([TAG_END]));
+      break;
+    }
+    case "list": {
+      // Nested lists - serialize as compound-like structure
+      const list = value as NbtList;
+      const elemType = tagTypeToByte(list.type);
+      parts.push(new Uint8Array([elemType]));
+      parts.push(writeInt(list.values.length, format));
+      for (const elem of list.values) {
+        serializeListElement(list.type, elem, format, parts);
+      }
+      break;
+    }
+    default:
+      throw new Error(`Cannot serialize list element of type: ${type}`);
+  }
 }
 
 // ====================== Utility Functions ======================
