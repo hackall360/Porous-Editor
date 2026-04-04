@@ -53,24 +53,26 @@
 *Finish the parsers that exist but are incomplete.*
 
 ### 2.1 NBT Binary Serialization
-- [ ] Implement `serializeNbt(data: NbtData, format)` to produce real binary NBT
-- [ ] Write tag type → byte encoding for all 13 tag types (END, BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BYTE_ARRAY, STRING, LIST, COMPOUND, INT_ARRAY, LONG_ARRAY)
-- [ ] Handle big-endian and little-endian output
-- [ ] Handle gzip recompression when original was compressed
-- [ ] Test: parse Minecraft `.nbt` → modify → serialize → compare with original structure
-- [ ] Test: parse Bedrock (little-endian) → serialize → verify endianness
+- [x] Implement `serializeNbt(data: NbtData, format)` to produce real binary NBT
+- [x] Write tag type → byte encoding for all 13 tag types (END, BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BYTE_ARRAY, STRING, LIST, COMPOUND, INT_ARRAY, LONG_ARRAY)
+- [x] Handle big-endian and little-endian output
+- [x] Handle gzip recompression when original was compressed
+- [x] Test: parse Minecraft `.nbt` → modify → serialize → compare with original structure
+- [x] Test: parse Bedrock (little-endian) → serialize → verify endianness
 - **Dependency:** 1.1 (download path must call this)
 - **Files:** `src/client/parsers/nbt.ts` (serializeNbt function)
+- **Notes:** Replaced JSON fallback with full binary serialization. Added `serializeTag()`, `serializeTagPayload()`, `serializeListElement()` helper functions. All 13 tag types supported. Big/little endian handled via DataView.
 
 ### 2.2 NBT Offset Tracking (`advanceOffset`)
-- [ ] Replace placeholder `advanceOffset()` with real byte-counting logic
-- [ ] Each tag type consumes a known number of bytes — implement a switch that returns exact size
-- [ ] For LIST and COMPOUND, recursively calculate child sizes
-- [ ] Alternative approach: refactor `parseNbt` to return `{ value, bytesRead }` tuples instead of relying on offset mutation
-- [ ] Test with deeply nested NBT compounds (10+ levels)
-- [ ] Test with large lists (1000+ items)
+- [x] Replace placeholder `advanceOffset()` with real byte-counting logic
+- [x] Each tag type consumes a known number of bytes — implement a switch that returns exact size
+- [x] For LIST and COMPOUND, recursively calculate child sizes
+- [x] Alternative approach: refactor `parseNbt` to return `{ value, bytesRead }` tuples instead of relying on offset mutation
+- [x] Test with deeply nested NBT compounds (10+ levels)
+- [x] Test with large lists (1000+ items)
 - **Dependency:** None (internal parser fix)
 - **Files:** `src/client/parsers/nbt.ts`
+- **Notes:** Eliminated `advanceOffset()` entirely. Refactored `parseTagPayload()`, `parseList()`, `parseCompound()` to return `{ value, bytesRead }` tuples. Offset tracking is now correct by construction. All compound/array tests pass.
 
 ### 2.3 GVAS Full Property Parsing
 - [ ] Implement proper `FName` table reading (string table at start of file)
