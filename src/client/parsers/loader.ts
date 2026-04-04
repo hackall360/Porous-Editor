@@ -10,6 +10,9 @@
  */
 
 import { parserRegistry, ParseMetadata } from "./index";
+
+// Re-export parserRegistry for use in main.ts
+export { parserRegistry };
 import { createNbtParser } from "./nbt";
 import { createUnityParser } from "./unity";
 import { createGvasParser } from "./gvas";

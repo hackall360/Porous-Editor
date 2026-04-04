@@ -10,11 +10,13 @@ import {
   EditorState,
   getFormatLabel,
   isRawSaveData,
-  InventoryItem,
 } from "./types";
 
 // Parser system imports
-import { initializeParsers, parseFile } from "./parsers/loader";
+import { initializeParsers, parseFile, parserRegistry } from "./parsers/loader";
+
+// UI imports
+import { renderTreeEditor } from "./ui/tree-editor";
 
 // ====================== Type Declarations ======================
 declare global {
@@ -29,9 +31,6 @@ declare global {
     hideAbout: () => void;
     formatRaw: () => void;
     clearRaw: () => void;
-    updateMoney: (value: string) => void;
-    updateItem: (index: number, value: string) => void;
-    updateStat: (key: string, value: string) => void;
   }
 }
 
@@ -42,6 +41,7 @@ class EditorStateManager {
     originalName: "",
     originalExt: "",
     storedType: "json",
+    parserId: null,
   };
 
   getCurrentData(): SaveData | null {
@@ -60,6 +60,10 @@ class EditorStateManager {
     return this.state.storedType;
   }
 
+  getParserId(): string | null {
+    return this.state.parserId ?? null;
+  }
+
   setState(data: Partial<EditorState>): void {
     this.state = { ...this.state, ...data };
   }
@@ -70,6 +74,7 @@ class EditorStateManager {
       originalName: "",
       originalExt: "",
       storedType: "json",
+      parserId: null,
     };
   }
 }
@@ -84,6 +89,7 @@ function saveToLocalStorage(
   ext: string,
   data: SaveData,
   type: "json" | "raw",
+  parserId?: string,
 ): void {
   const payload: StoredSave = {
     name,
@@ -91,6 +97,7 @@ function saveToLocalStorage(
     data,
     type,
     timestamp: Date.now(),
+    parserId: parserId ?? null,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -121,22 +128,17 @@ async function handleUpload(file: File | null): Promise<void> {
   try {
     // Use the new parser system for intelligent format detection
     const result = await parseFile(file);
-    saveToLocalStorage(originalName, ext, result.data, result.type);
+    saveToLocalStorage(
+      originalName,
+      ext,
+      result.data,
+      result.type,
+      result.parserId,
+    );
     window.location.href = "editor.html";
   } catch (err) {
     console.error("Upload failed:", err);
-    // Fallback to raw text if parser system fails
-    const reader = new FileReader();
-
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      const rawData = { raw: e.target?.result as string } as RawSaveData;
-
-      saveToLocalStorage(originalName, ext, rawData, "raw");
-
-      window.location.href = "editor.html";
-    };
-
-    reader.readAsText(file);
+    alert("Failed to process file. Please try a different file.");
   }
 }
 
@@ -153,6 +155,7 @@ function loadEditorData(): void {
     originalName: stored.name,
     originalExt: stored.ext,
     storedType: stored.type,
+    parserId: stored.parserId ?? null,
   });
 
   renderInfoPanel();
@@ -250,122 +253,15 @@ function getFileSizeString(data: SaveData): string {
 
 function renderJSONEditor(): void {
   const data = editorState.getCurrentData() as JsonSaveData;
-
   if (!data) return;
 
-  const moneyVal = data.money || data.gold || 0;
+  const container = document.getElementById("editorContent");
+  if (!container) return;
 
-  const items = data.items || [];
-
-  let html = `<div class="space-y-8">`;
-
-  // Quick gold/money section
-
-  html += `
-
-    <div class="flex items-center justify-between bg-[#111] p-6 rounded-2xl">
-      <span class="font-bold">GOLD / MONEY</span>
-      <input
-        id="goldInput"
-        type="number"
-        value="${moneyVal}"
-        class="bg-transparent border border-[#00ff9d] text-3xl text-center w-48 font-mono focus:outline-none"
-        onchange="updateMoney(this.value)"
-      >
-    </div>
-  `;
-
-  // Inventory section
-  html += `
-    <div>
-      <h4 class="mb-3 text-[#ff00aa]">INVENTORY</h4>
-      <table class="w-full">
-        <thead>
-          <tr class="text-left border-b">
-            <th class="pb-2">ITEM</th>
-            <th class="pb-2 text-center">QTY</th>
-          </tr>
-        </thead>
-        <tbody id="itemsBody">
-  `;
-
-  if (items.length > 0) {
-    items.forEach((item: InventoryItem, i: number) => {
-      const itemName = item.name || `Item ${i}`;
-      const itemQty = item.qty || item.amount || 1;
-      html += `
-        <tr class="border-b border-[#00ff9d]/10">
-          <td class="py-2">${escapeHtml(itemName)}</td>
-          <td class="py-2 text-center">
-            <input
-              type="number"
-              value="${itemQty}"
-              min="0"
-              class="bg-transparent w-20 text-center border border-[#00ff9d]/40 rounded px-2 py-1 focus:outline-none focus:border-[#00ff9d]"
-              onchange="updateItem(${i}, this.value)"
-            >
-          </td>
-        </tr>
-      `;
-    });
-  } else {
-    html += `<tr><td colspan="2" class="text-center py-8 text-[#00ff9d]/50">No inventory items detected</td></tr>`;
-  }
-
-  html += `
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  // Stats/Vars section
-  const statsKeys = Object.keys(data).filter(
-    (key) => !["items", "money", "gold"].includes(key),
-  );
-
-  if (statsKeys.length > 0) {
-    html += `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h4 class="mb-3 text-[#ff00aa]">STATS / VARIABLES</h4>
-    `;
-
-    statsKeys.forEach((key) => {
-      const value = data[key];
-      if (typeof value === "number" || typeof value === "string") {
-        const inputType = typeof value === "number" ? "number" : "text";
-        html += `
-          <div class="flex justify-between items-center mb-2 bg-[#111] p-3 rounded">
-            <span class="text-sm">${escapeHtml(key.toUpperCase())}</span>
-            <input
-              type="${inputType}"
-              value="${escapeHtml(String(value))}"
-              class="bg-transparent border border-[#00ff9d]/40 px-3 py-1 w-32 text-right focus:outline-none focus:border-[#00ff9d] rounded"
-              onchange="updateStat('${key}', this.value)"
-            >
-          </div>
-        `;
-      }
-    });
-
-    html += `
-        </div>
-      </div>
-    </div>
-    `;
-  } else {
-    html += `
-      <div class="text-center py-8 text-[#00ff9d]/50">
-        <i class="fa-solid fa-database text-2xl mb-2"></i>
-        <p>No additional variables detected</p>
-      </div>
-    `;
-  }
-
-  const editorContent = document.getElementById("editorContent");
-  if (editorContent) {
-    editorContent.innerHTML = html;
-  }
+  renderTreeEditor(container, data as Record<string, unknown>, (newData) => {
+    editorState.setState({ currentData: newData as JsonSaveData });
+    saveDataToMemory();
+  });
 }
 
 function renderRawEditor(): void {
@@ -434,39 +330,7 @@ function clearRaw(): void {
 // ====================== Data Modification ======================
 // These functions are called from HTML event handlers, so they appear unused to TypeScript
 /* eslint-disable @typescript-eslint/no-unused-vars */
-function updateMoney(value: string): void {
-  const numValue = parseInt(value) || 0;
-  const currentData = editorState.getCurrentData() as JsonSaveData;
-  if (currentData) {
-    currentData.money = numValue;
-    currentData.gold = numValue;
-    saveDataToMemory();
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function updateItem(index: number, value: string): void {
-  const currentData = editorState.getCurrentData() as JsonSaveData;
-  if (!currentData || !currentData.items) return;
-
-  const numValue = parseInt(value) || 0;
-  if (currentData.items[index]) {
-    currentData.items[index].qty = numValue;
-    currentData.items[index].amount = numValue;
-    saveDataToMemory();
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function updateStat(key: string, value: string): void {
-  const currentData = editorState.getCurrentData() as JsonSaveData;
-  if (currentData) {
-    // Try to convert to number if it was a number
-    const numValue = parseInt(value);
-    currentData[key] = isNaN(numValue) ? value : numValue;
-    saveDataToMemory();
-  }
-}
+// updateMoney, updateItem, updateStat replaced by generic updateTreeValue
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
 function saveDataToMemory(): void {
@@ -484,61 +348,72 @@ function clearData(): void {
   }
 }
 
-function downloadSave(): void {
+async function downloadSave(): Promise<void> {
   const currentData = editorState.getCurrentData();
-
   const originalName = editorState.getOriginalName();
-
-  const originalExt = editorState.getOriginalExt();
+  void editorState.getOriginalExt(); // Available for future use
+  const parserId = editorState.getParserId();
 
   if (!currentData) {
     console.error("No data to download");
-
     alert("No data available to download.");
-
     return;
   }
 
   let blob: Blob;
-
   let filename: string;
 
+  // Try to use the parser's serialize method for round-trip support
+  if (parserId) {
+    const parser = parserRegistry.get(parserId);
+    if (parser && typeof parser.serialize === "function") {
+      try {
+        const serialized = await parser.serialize(currentData);
+        blob = new Blob([serialized], { type: "application/octet-stream" });
+        filename = originalName || "edited_save";
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, filename);
+        URL.revokeObjectURL(url);
+        showDownloadSuccess();
+        return;
+      } catch (err) {
+        console.warn(
+          `Parser '${parserId}' serialization failed, falling back to JSON:`,
+          err,
+        );
+      }
+    }
+  }
+
+  // Fallback: raw text or JSON
   if (isRawSaveData(currentData)) {
     blob = new Blob([currentData.raw], { type: "application/octet-stream" });
-
-    filename = originalName || `edited_save.${originalExt}`;
+    filename = originalName || "edited_save";
   } else {
     blob = new Blob([JSON.stringify(currentData, null, 2)], {
       type: "application/json",
     });
-
     filename = originalName?.replace(/\.[^/.]+$/, "") || "edited_save";
-
     filename += ".json";
   }
 
   const url = URL.createObjectURL(blob);
+  triggerDownload(url, filename);
+  URL.revokeObjectURL(url);
+  showDownloadSuccess();
+}
+
+function triggerDownload(url: string, filename: string): void {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+}
 
-  // Mini celebration animation
-  const panel = document.querySelector("#editorContent");
-  const panelElement = panel as HTMLElement | null;
-
-  if (panelElement) {
-    panelElement.style.transition = "transform 0.3s";
-    panelElement.style.transform = "scale(1.03)";
-    setTimeout(() => {
-      panelElement.style.transform = "scale(1)";
-    }, 300);
-  }
-
-  showNotification("Download started!");
+function showDownloadSuccess(): void {
+  showNotification("✓ Save downloaded");
 }
 
 // ====================== Modal Helpers ======================
@@ -648,15 +523,6 @@ function init(): void {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).clearRaw = clearRaw;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).updateMoney = updateMoney;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).updateItem = updateItem;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).updateStat = updateStat;
 
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

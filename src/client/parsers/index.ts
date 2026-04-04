@@ -108,11 +108,9 @@ export abstract class BaseParser<
    * Get size of input data in bytes
    */
   protected getSize(input: TInput): number {
-    if (input instanceof ArrayBuffer) {
-      return input.byteLength;
-    }
-    if (input instanceof Uint8Array) {
-      return input.byteLength;
+    // Duck typing for cross-realm compatibility (jsdom, workers, etc.)
+    if (input && typeof (input as any).byteLength === "number") {
+      return (input as any).byteLength;
     }
     if (typeof input === "string") {
       return new TextEncoder().encode(input).byteLength;

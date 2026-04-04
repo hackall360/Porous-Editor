@@ -14,35 +14,38 @@
 *These block the core promise of "edit and save back" for every format.*
 
 ### 1.1 Wire Up Parser Serialization in Download Path
-- [ ] Read `downloadSave()` in `main.ts` — currently always does `JSON.stringify`
-- [ ] Look up the parser that was used for the loaded file (stored in `EditorState` or `parseFile` result)
-- [ ] If parser has a `serialize()` method, call it with the current edited data
-- [ ] If parser has no `serialize()` or roundTrip is `"none"`, fall back to current JSON/text behavior
-- [ ] Set correct MIME type and filename extension on the downloaded blob
+- [x] Read `downloadSave()` in `main.ts` — currently always does `JSON.stringify`
+- [x] Look up the parser that was used for the loaded file (stored in `EditorState` or `parseFile` result)
+- [x] If parser has a `serialize()` method, call it with the current edited data
+- [x] If parser has no `serialize()` or roundTrip is `"none"`, fall back to current JSON/text behavior
+- [x] Set correct MIME type and filename extension on the downloaded blob
 - [ ] Test round-trip: load RPG Maker save → edit → download → re-load → verify data matches
 - [ ] Test round-trip: load Unity XML save → edit → download → re-load → verify data matches
 - **Dependency:** None
 - **Files:** `src/client/main.ts` (downloadSave), `src/client/parsers/loader.ts` (expose parser reference)
+- **Notes:** `downloadSave()` is now async. Tries `parser.serialize()` first, falls back to JSON or raw text. Added `triggerDownload()` and `showDownloadSuccess()` helpers.
 
 ### 1.2 Build Generic Recursive Tree Editor
-- [ ] Replace hardcoded `renderJSONEditor()` (money/items/stats) with a generic tree renderer
-- [ ] Support rendering: objects (expandable), arrays (indexed), primitives (editable inputs), null/undefined
-- [ ] Inline editing: click a value → input appears → on blur/enter → update state
-- [ ] Add type selector for new values (string, number, boolean, null)
-- [ ] Support adding new keys to objects and new items to arrays
-- [ ] Support deleting keys/items
-- [ ] Handle large datasets gracefully (virtual scrolling or lazy expand for 1000+ entries)
-- [ ] Preserve edit state in `EditorState.currentData` so download serializes the edited tree
+- [x] Replace hardcoded `renderJSONEditor()` (money/items/stats) with a generic tree renderer
+- [x] Support rendering: objects (expandable), arrays (indexed), primitives (editable inputs), null/undefined
+- [x] Inline editing: click a value → input appears → on blur/enter → update state
+- [x] Add type selector for new values (string, number, boolean, null)
+- [x] Support adding new keys to objects and new items to arrays
+- [x] Support deleting keys/items
+- [x] Handle large datasets gracefully (virtual scrolling or lazy expand for 1000+ entries)
+- [x] Preserve edit state in `EditorState.currentData` so download serializes the edited tree
 - **Dependency:** 1.1 (download needs to serialize the tree output)
 - **Files:** `src/client/main.ts` (new renderTreeEditor function), HTML templates
+- **Notes:** Implemented `renderTreeEditor()` with recursive node rendering, inline value editing, add/delete operations, and type-aware inputs. Replaced the hardcoded money/items/stats UI.
 
 ### 1.3 Store Parser Reference in EditorState
-- [ ] Extend `EditorState` interface to track `parserId: string | null`
-- [ ] Update `handleUpload()` to store the parser ID from `parseFile()` result
-- [ ] Update `saveToLocalStorage()` / `loadFromLocalStorage()` to persist parser ID
-- [ ] Update `downloadSave()` to look up parser by stored ID
+- [x] Extend `EditorState` interface to track `parserId: string | null`
+- [x] Update `handleUpload()` to store the parser ID from `parseFile()` result
+- [x] Update `saveToLocalStorage()` / `loadFromLocalStorage()` to persist parser ID
+- [x] Update `downloadSave()` to look up parser by stored ID
 - **Dependency:** None
 - **Files:** `src/client/main.ts`, `src/client/types/index.ts`
+- **Notes:** Added `parserId` to `EditorState` and `StoredSave` interfaces. `EditorStateManager` has `getParserId()`. Re-exported `parserRegistry` from loader.ts.
 
 ---
 

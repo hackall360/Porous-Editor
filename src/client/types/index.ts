@@ -116,6 +116,7 @@ export interface StoredSave {
   data: SaveData;
   type: "json" | "raw";
   timestamp: number;
+  parserId: string | null;
 }
 
 /**
@@ -126,6 +127,7 @@ export interface EditorState {
   originalName: string;
   originalExt: string;
   storedType: "json" | "raw";
+  parserId: string | null;
 }
 
 /**
@@ -312,14 +314,24 @@ export function isJsonFormat(ext: string): boolean {
  * Type guard to check if data is RawSaveData
  */
 export function isRawSaveData(data: SaveData): data is RawSaveData {
-  return "raw" in data;
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data) &&
+    "raw" in data
+  );
 }
 
 /**
  * Type guard to check if data is JsonSaveData
  */
 export function isJsonSaveData(data: SaveData): data is JsonSaveData {
-  return !("raw" in data) && typeof data === "object" && data !== null;
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data) &&
+    !("raw" in data)
+  );
 }
 
 /**
