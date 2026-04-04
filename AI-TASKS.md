@@ -61,7 +61,7 @@
 - [x] Test: parse Bedrock (little-endian) → serialize → verify endianness
 - **Dependency:** 1.1 (download path must call this)
 - **Files:** `src/client/parsers/nbt.ts` (serializeNbt function)
-- **Notes:** Replaced JSON fallback with full binary serialization. Added `serializeTag()`, `serializeTagPayload()`, `serializeListElement()` helper functions. All 13 tag types supported. Big/little endian handled via DataView.
+- **Notes:** Complete parser rewrite with `NbtReader`/`NbtWriter` architecture. All 13 tag types supported with proper TypeScript discriminated unions. Big/little endian handled via DataView. Gzip decompression via `pako` or native `DecompressionStream`. Full round-trip serialization. 219/220 tests passing.
 
 ### 2.2 NBT Offset Tracking (`advanceOffset`)
 - [x] Replace placeholder `advanceOffset()` with real byte-counting logic
@@ -72,7 +72,7 @@
 - [x] Test with large lists (1000+ items)
 - **Dependency:** None (internal parser fix)
 - **Files:** `src/client/parsers/nbt.ts`
-- **Notes:** Eliminated `advanceOffset()` entirely. Refactored `parseTagPayload()`, `parseList()`, `parseCompound()` to return `{ value, bytesRead }` tuples. Offset tracking is now correct by construction. All compound/array tests pass.
+- **Notes:** Eliminated `advanceOffset()` entirely. The new `NbtReader` class tracks offset internally with each read method advancing it automatically. Compound and list parsing recursively consume children with correct byte positioning. Offset tracking is correct by construction.
 
 ### 2.3 GVAS Full Property Parsing
 - [x] Implement proper `FName` table reading (string table at start of file)
@@ -258,10 +258,10 @@
 |---|---|---|---|---|---|---|
 | JSON | `.json`, `.save` | Built-in | ✅ | ✅ | ✅ | ✅ Stable |
 | RPG Maker MV/MZ | `.rpgsave`, `.rmmzsave` | rpgmaker | ✅ | ✅ | ✅ | ✅ Stable |
-| NBT (Minecraft) | `.nbt`, `.mca`, `.mcr` | nbt | ✅ | ⚠️ | ❌ Stub | ❌ None |
+| NBT (Minecraft) | `.nbt`, `.mca`, `.mcr` | nbt | ✅ | ✅ | ✅ Full | ✅ Stable |
 | GVAS (Unreal) | `.sav` | gvas | ⚠️ Partial | ⚠️ Partial | ⚠️ Simplified | ⚠️ Experimental |
 | Unity XML | `.xml` | unity | ✅ | ✅ | ✅ | ✅ Stable |
-| Unity PLIST | `.plist` | unity | ⚠️ XML only | ✅ | ✅ | ⚠️ Partial |
+| Unity PLIST | `.plist` | unity | ✅ XML + Binary | ✅ | ✅ | ⚠️ Partial (no binary serialize) |
 | Bethesda ESS | `.ess` | — | ❌ | ❌ | ❌ | ❌ Not implemented |
 | SQLite | `.sqlite`, `.db` | — | ❌ | ❌ | ❌ | ❌ Not implemented |
 | Terraria | `.wld`, `.plr` | — | ❌ | ❌ | ❌ | ❌ Not implemented |
@@ -273,4 +273,4 @@
 
 ---
 
-*Last Updated: 2025-12-19*
+*Last Updated: 2025-12-20*
