@@ -26,16 +26,17 @@
 - **Notes:** `downloadSave()` is now async. Tries `parser.serialize()` first, falls back to JSON or raw text. Added `triggerDownload()` and `showDownloadSuccess()` helpers.
 
 ### 1.2 Build Generic Recursive Tree Editor
-- [ ] Replace hardcoded `renderJSONEditor()` (money/items/stats) with a generic tree renderer
-- [ ] Support rendering: objects (expandable), arrays (indexed), primitives (editable inputs), null/undefined
-- [ ] Inline editing: click a value → input appears → on blur/enter → update state
-- [ ] Add type selector for new values (string, number, boolean, null)
-- [ ] Support adding new keys to objects and new items to arrays
-- [ ] Support deleting keys/items
-- [ ] Handle large datasets gracefully (virtual scrolling or lazy expand for 1000+ entries)
-- [ ] Preserve edit state in `EditorState.currentData` so download serializes the edited tree
+- [x] Replace hardcoded `renderJSONEditor()` (money/items/stats) with a generic tree renderer
+- [x] Support rendering: objects (expandable), arrays (indexed), primitives (editable inputs), null/undefined
+- [x] Inline editing: click a value → input appears → on blur/enter → update state
+- [x] Add type selector for new values (string, number, boolean, null)
+- [x] Support adding new keys to objects and new items to arrays
+- [x] Support deleting keys/items
+- [x] Handle large datasets gracefully (virtual scrolling or lazy expand for 1000+ entries)
+- [x] Preserve edit state in `EditorState.currentData` so download serializes the edited tree
 - **Dependency:** 1.1 (download needs to serialize the tree output)
 - **Files:** `src/client/main.ts` (new renderTreeEditor function), HTML templates
+- **Notes:** Implemented `renderTreeEditor()` with recursive node rendering, inline value editing, add/delete operations, and type-aware inputs. Replaced the hardcoded money/items/stats UI.
 
 ### 1.3 Store Parser Reference in EditorState
 - [x] Extend `EditorState` interface to track `parserId: string | null`

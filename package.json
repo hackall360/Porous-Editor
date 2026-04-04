@@ -9,6 +9,9 @@
     "build:watch": "esbuild src/client/main.ts --bundle --outfile=public/js/bundle.js --sourcemap --loader:.js=js --loader:.ts=ts --watch",
     "lint": "eslint src/**/*.{ts,tsx}",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "serve": "npx serve -s public -l 3000"
   },
   "keywords": [
@@ -23,16 +26,19 @@
   "author": "Porous Editor Team",
   "license": "MPL-2.0",
   "dependencies": {
-    "pako": "^2.1.0",
-    "lz-string": "^1.5.0",
     "fflate": "^0.8.2",
+    "lz-string": "^1.5.0",
+    "pako": "^2.1.0",
     "plist": "^3.1.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.1.0",
     "@typescript-eslint/parser": "^6.1.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "esbuild": "^0.18.11",
     "eslint": "^8.45.0",
-    "typescript": "^5.1.6"
+    "jsdom": "^29.0.1",
+    "typescript": "^5.1.6",
+    "vitest": "^4.1.2"
   }
 }
