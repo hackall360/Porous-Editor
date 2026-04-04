@@ -89,15 +89,16 @@
 - **Notes:** Refactored with `{ value, bytesRead }` tuples for correct offset tracking. Added full type dispatch for Int/Int64/Float/Double/Bool/Byte/Name/Str/Text properties. Implemented ArrayProperty, StructProperty, MapProperty, and SetProperty parsing with element type dispatch. Serialize still uses simplified format (marked as remaining).
 
 ### 2.4 Binary Plist Support
-- [ ] The `plist` npm package is already in `package.json` but not used in browser build
-- [ ] Determine if `plist` can be bundled with esbuild for browser use (it's Node-oriented)
-- [ ] If not, find or implement a browser-compatible binary plist parser (e.g., `bplist-parser` or custom)
-- [ ] Add binary plist detection: check for `bplist00` magic bytes
-- [ ] Implement `parseBinaryPlist(bytes: Uint8Array)` → `UnityParseResult`
+- [x] The `plist` npm package is already in `package.json` but not used in browser build
+- [x] Determine if `plist` can be bundled with esbuild for browser use (it's Node-oriented)
+- [x] If not, find or implement a browser-compatible binary plist parser (e.g., `bplist-parser` or custom)
+- [x] Add binary plist detection: check for `bplist00` magic bytes
+- [x] Implement `parseBinaryPlist(bytes: Uint8Array)` → `UnityParseResult`
 - [ ] Implement `serializeBinaryPlist(data)` → `ArrayBuffer`
-- [ ] Update Unity parser to auto-detect XML vs binary plist
+- [x] Update Unity parser to auto-detect XML vs binary plist
 - **Dependency:** Research needed on plist browser compatibility
 - **Files:** `src/client/parsers/unity.ts`, possibly new `plist-browser.ts`
+- **Notes:** Implemented custom binary plist parser from scratch (bplist00 spec). Supports all types: null, bool, int, real, ASCII/UTF-16 strings, data, arrays, dictionaries, UID. Auto-detects binary vs XML by magic bytes. Serialization not yet implemented.
 
 ---
 
