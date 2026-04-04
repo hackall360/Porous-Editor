@@ -84,17 +84,16 @@ export interface Parser<TInput = ArrayBuffer, TOutput = unknown> {
 /**
  * Abstract base class providing common parser functionality
  */
-export abstract class BaseParser<TInput = ArrayBuffer, TOutput = unknown>
-  implements Parser<TInput, TOutput>
-{
+export abstract class BaseParser<
+  TInput = ArrayBuffer,
+  TOutput = unknown,
+> implements Parser<TInput, TOutput> {
   abstract readonly id: string;
   abstract readonly extensions: string[];
   readonly magicBytes?: number[];
 
   async parse(input: TInput, fileName: string): Promise<ParseResult<TOutput>> {
-    const startTime = performance.now();
     const result = await this.doParse(input, fileName);
-    const duration = performance.now() - startTime;
 
     return {
       ...result,
@@ -139,9 +138,14 @@ export abstract class BaseParser<TInput = ArrayBuffer, TOutput = unknown>
   }
 
   /**
+
    * Default serialize throws - subclasses must override if they support saving
+
    */
+
   serialize?(_data: TOutput): ArrayBuffer | Promise<ArrayBuffer> {
+    void _data; // Mark as intentionally unused
+
     throw new Error(
       `Parser '${this.id}' does not support serialization (round-trip editing)`,
     );
@@ -280,20 +284,23 @@ export function safeDecode(
 }
 
 /**
+
  * Create a structured SaveData object from parsed content
+
  */
-export function createSaveData(
-  content: unknown,
-  ext: string,
-  roundTripSupport: "stable" | "experimental" | "none",
-): SaveData {
+
+export function createSaveData(content: unknown): SaveData {
   // If content is already a RawSaveData, return it
   if (isRawSaveData(content)) {
     return content;
   }
 
   // If content is a plain object, treat as JSON save data
-  if (typeof content === "object" && content !== null && !Array.isArray(content)) {
+  if (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content)
+  ) {
     return content as JsonSaveData;
   }
 
@@ -304,11 +311,12 @@ export function createSaveData(
 }
 
 // Type guard for RawSaveData
+
 function isRawSaveData(data: unknown): data is RawSaveData {
   return (
     typeof data === "object" &&
     data !== null &&
     "raw" in data &&
-    typeof (data as any).raw === "string"
+    typeof (data as { raw: unknown }).raw === "string"
   );
 }

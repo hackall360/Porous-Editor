@@ -15,7 +15,7 @@
  * - Minecraft NBT specification: http://wiki.vg/NBT
  */
 
-import { BaseParser, ParseResult, toUint8Array, safeDecode } from "./index";
+import { BaseParser, ParseResult, safeDecode } from "./index";
 
 // ====================== NBT Tag Types ======================
 
@@ -46,7 +46,10 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
   private format: "big" | "little" | "littleVarint";
   private decompress: boolean;
 
-  constructor(format: "big" | "little" | "littleVarint" = "big", decompress: boolean = true) {
+  constructor(
+    format: "big" | "little" | "littleVarint" = "big",
+    decompress: boolean = true,
+  ) {
     super();
     this.format = format;
     this.decompress = decompress;
@@ -56,12 +59,15 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     // NBT doesn't have a magic number, but we can check for valid tag types
     // The first byte should be a valid tag type (0-12, though 0 is only for end)
     if (bytes.length === 0) return false;
-    const firstByte = bytes[0];
+    const firstByte = bytes[0]!;
     return firstByte >= 1 && firstByte <= 12;
   }
 
-  protected async doParse(input: ArrayBuffer, fileName: string): Promise<ParseResult<NbtData>> {
-    let data = new Uint8Array(input);
+  protected async doParse(
+    input: ArrayBuffer,
+    fileName: string,
+  ): Promise<ParseResult<NbtData>> {
+    let data: Uint8Array = new Uint8Array(input);
 
     // Try to decompress if it looks compressed
     let wasDecompressed = false;
@@ -75,7 +81,8 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
 
     try {
       const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-      const result = this.parseNbt(view, 0, this.format);
+      const format = this.format === "littleVarint" ? "little" : this.format;
+      const result = this.parseNbt(view, 0, format);
 
       return {
         data: result,
@@ -85,19 +92,22 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
           formatLabel: "NBT (Minecraft)",
           wasDecompressed,
           fileSize: input.byteLength,
-          warnings: wasDecompressed ? ["File was compressed and decompressed"] : undefined,
+          warnings: wasDecompressed
+            ? ["File was compressed and decompressed"]
+            : [],
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
-        data: null,
+        data: { type: "error", name: "error", value: message },
         roundTripSupport: "none",
         metadata: {
           extension: fileName.split(".").pop() || "nbt",
           formatLabel: "NBT (Minecraft)",
           wasDecompressed,
           fileSize: input.byteLength,
-          warnings: [`Parse error: ${error.message}`],
+          warnings: [`Parse error: ${message}`],
         },
       };
     }
@@ -111,11 +121,15 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     if (data.length >= 2 && data[0] === 0x1f && data[1] === 0x8b) {
       // Use pako if available, otherwise return null
       try {
-        // @ts-ignore - pako may be available globally
-        const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+        const pako =
+          window.pako || (typeof require !== "undefined" && require("pako"));
         if (pako) {
-          const inflated = pako.ungzip(data, { to: 'string' });
-          return new TextEncoder().encode(inflated);
+          const inflated = pako.ungzip(data, { to: "string" });
+          if (typeof inflated === "string") {
+            const encoded = new TextEncoder().encode(inflated);
+            return new Uint8Array(encoded.buffer as ArrayBuffer);
+          }
+          return inflated;
         }
       } catch {
         // pako not available or decompression failed
@@ -125,11 +139,15 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     // Check for zlib (not gzip)
     if (data.length >= 2) {
       try {
-        // @ts-ignore
-        const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+        const pako =
+          window.pako || (typeof require !== "undefined" && require("pako"));
         if (pako) {
-          const inflated = pako.inflate(data, { to: 'string' });
-          return new TextEncoder().encode(inflated);
+          const inflated = pako.inflate(data, { to: "string" });
+          if (typeof inflated === "string") {
+            const encoded = new TextEncoder().encode(inflated);
+            return new Uint8Array(encoded.buffer as ArrayBuffer);
+          }
+          return inflated;
         }
       } catch {
         // Not zlib or pako not available
@@ -142,7 +160,11 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
   /**
    * Parse NBT data from a DataView
    */
-  private parseNbt(view: DataView, offset: number, format: "big" | "little"): NbtData {
+  private parseNbt(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): NbtData {
     const tagType = view.getUint8(offset);
     offset += 1;
 
@@ -153,7 +175,7 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     // Read name (string)
     const nameLength = this.readShort(view, offset, format);
     offset += 2;
-    const name = this.readString(view, offset, nameLength);
+    const name = this.readNbtString(view, offset, nameLength);
     offset += nameLength;
 
     // Parse payload based on tag type
@@ -173,7 +195,7 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     view: DataView,
     offset: number,
     tagType: number,
-    format: "big" | "little"
+    format: "big" | "little",
   ): NbtValue {
     switch (tagType) {
       case TAG_BYTE:
@@ -217,28 +239,70 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     }
   }
 
-  private readShort(view: DataView, offset: number, format: "big" | "little"): number {
-    return format === "big" ? view.getInt16(offset, false) : view.getInt16(offset, true);
+  private readShort(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): number {
+    return format === "big"
+      ? view.getInt16(offset, false)
+      : view.getInt16(offset, true);
   }
 
-  private readInt(view: DataView, offset: number, format: "big" | "little"): number {
-    return format === "big" ? view.getInt32(offset, false) : view.getInt32(offset, true);
+  private readInt(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): number {
+    return format === "big"
+      ? view.getInt32(offset, false)
+      : view.getInt32(offset, true);
   }
 
-  private readLong(view: DataView, offset: number, format: "big" | "little"): bigint {
-    const low = format === "big" ? view.getUint32(offset, false) : view.getUint32(offset, true);
-    const high = format === "big" ? view.getUint32(offset + 4, false) : view.getUint32(offset + 4, true);
-    return BigInt(high) << BigInt(32) | BigInt(low);
+  private readLong(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): bigint {
+    const low =
+      format === "big"
+        ? view.getUint32(offset, false)
+        : view.getUint32(offset, true);
+    const high =
+      format === "big"
+        ? view.getUint32(offset + 4, false)
+        : view.getUint32(offset + 4, true);
+    return (BigInt(high) << BigInt(32)) | BigInt(low);
   }
 
-  private parseString(view: DataView, offset: number, format: "big" | "little"): string {
+  /**
+   * Read an NBT string given its length
+   */
+  private readNbtString(
+    view: DataView,
+    offset: number,
+    length: number,
+  ): string {
+    const bytes = new Uint8Array(view.buffer, offset, length);
+    return safeDecode(bytes);
+  }
+
+  private parseString(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): string {
     const length = this.readShort(view, offset, format);
     offset += 2;
     const bytes = new Uint8Array(view.buffer, offset, length);
     return safeDecode(bytes);
   }
 
-  private parseByteArray(view: DataView, offset: number, format: "big" | "little"): number[] {
+  private parseByteArray(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): number[] {
     const length = this.readInt(view, offset, format);
     offset += 4;
     const result: number[] = [];
@@ -248,7 +312,11 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     return result;
   }
 
-  private parseIntArray(view: DataView, offset: number, format: "big" | "little"): number[] {
+  private parseIntArray(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): number[] {
     const length = this.readInt(view, offset, format);
     offset += 4;
     const result: number[] = [];
@@ -258,7 +326,11 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     return result;
   }
 
-  private parseLongArray(view: DataView, offset: number, format: "big" | "little"): bigint[] {
+  private parseLongArray(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): bigint[] {
     const length = this.readInt(view, offset, format);
     offset += 4;
     const result: bigint[] = [];
@@ -268,7 +340,11 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     return result;
   }
 
-  private parseList(view: DataView, offset: number, format: "big" | "little"): NbtList {
+  private parseList(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): NbtList {
     const tagType = view.getUint8(offset);
     offset += 1;
     const length = this.readInt(view, offset, format);
@@ -287,9 +363,14 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     };
   }
 
-  private parseCompound(view: DataView, offset: number, format: "big" | "little"): NbtCompound {
+  private parseCompound(
+    view: DataView,
+    offset: number,
+    format: "big" | "little",
+  ): NbtCompound {
     const entries: NbtData[] = [];
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const tagType = view.getUint8(offset);
       if (tagType === TAG_END) {
@@ -298,7 +379,7 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
       }
 
       const nameLength = this.readShort(view, offset + 1, format);
-      const name = this.readString(view, offset + 3, nameLength);
+      const name = this.readNbtString(view, offset + 3, nameLength);
       const payloadOffset = offset + 3 + nameLength;
       const value = this.parseTagPayload(view, payloadOffset, tagType, format);
 
@@ -318,7 +399,7 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
     view: DataView,
     offset: number,
     tagType: number,
-    format: "big" | "little"
+    format: "big" | "little",
   ): NbtValue {
     return this.parseTagPayload(view, offset, tagType, format);
   }
@@ -328,14 +409,17 @@ export class NBTParser extends BaseParser<ArrayBuffer, NbtData> {
    * This is a simplified version - for production, implement proper size tracking
    */
   private advanceOffset(
-    view: DataView,
+    _view: DataView,
     offset: number,
-    tagType: number,
-    format: "big" | "little"
+    _tagType: number,
+    _format: "big" | "little",
   ): number {
     // This is a simplified implementation
     // A full implementation would track exact byte consumption during parsing
     // For now, we'll return a placeholder - the recursive parse already advances correctly
+    void _view;
+    void _tagType;
+    void _format;
     return offset; // The recursive calls already track offset properly
   }
 
@@ -394,10 +478,14 @@ export interface NbtData {
  * This is a simplified implementation - full serialization would require
  * tracking original format details and proper byte ordering
  */
-export function serializeNbt(data: NbtData, format: "big" | "little" = "big"): ArrayBuffer {
+export function serializeNbt(
+  data: NbtData,
+  _format: "big" | "little" = "big",
+): ArrayBuffer {
+  void _format;
   // This is a placeholder - full serialization is complex
   // For now, we'll convert to JSON string as fallback
-  const json = JSON.stringify(data, (key, value) => {
+  const json = JSON.stringify(data, (_key, value) => {
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -418,7 +506,8 @@ export function serializeNbt(data: NbtData, format: "big" | "little" = "big"): A
 export function simplifyNbt(data: NbtData | null): unknown {
   if (!data) return null;
 
-  const { type, name, value } = data;
+  const { type, name: _name, value } = data;
+  void _name;
 
   if (type === "compound") {
     const result: Record<string, unknown> = {};
@@ -437,7 +526,11 @@ export function simplifyNbt(data: NbtData | null): unknown {
 }
 
 function simplifyNbtValue(value: NbtValue): unknown {
-  if (typeof value === "number" || typeof value === "string" || typeof value === "boolean") {
+  if (
+    typeof value === "number" ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
     return value;
   }
   if (typeof value === "bigint") {

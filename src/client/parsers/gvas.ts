@@ -15,25 +15,22 @@
  * - Unreal Engine serialization documentation
  */
 
-import { BaseParser, ParseResult, toUint8Array, safeDecode, concatBuffers } from "./index";
+import { BaseParser, ParseResult, toUint8Array, safeDecode } from "./index";
 
 // ====================== GVAS Constants ======================
 
 const GVAS_MAGIC = new Uint8Array([0x47, 0x56, 0x41, 0x53]); // "GVAS"
-const GVAS_HEADER_SIZE = 4;
 
 // UE version strings that may follow the magic
-const KNOWN_UE_VERSIONS = [
-  "UNREAL3", "UNREAL4", "UNREAL5",
-  "ue4", "ue5", "4.27", "5.0", "5.1", "5.2", "5.3"
-];
 
 // ====================== Type Definitions ======================
 
 export interface GvasHeader {
   magic: string;
+
   version?: string;
-  package?: string;
+
+  package: string | undefined;
 }
 
 export interface GvasProperty {
@@ -49,16 +46,9 @@ export interface GvasData {
   unknownData?: Uint8Array;
 }
 
-export interface GvasParseResult {
-  data: GvasData;
-  compression: "none" | "zlib" | "gzip" | "unknown";
-  fileSize: number;
-  decompressedSize: number;
-}
-
 // ====================== GVAS Parser Implementation ======================
 
-export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
+export class GvasParser extends BaseParser<ArrayBuffer, GvasData> {
   readonly id = "gvas";
   readonly extensions = ["sav"];
   readonly magicBytes?: number[] = Array.from(GVAS_MAGIC);
@@ -73,13 +63,14 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
     return true;
   }
 
-  protected async doParse(input: ArrayBuffer, fileName: string): Promise<ParseResult<GvasParseResult>> {
-    const startTime = performance.now();
+  protected async doParse(
+    input: ArrayBuffer,
+    fileName: string,
+  ): Promise<ParseResult<GvasData>> {
     let bytes = toUint8Array(input);
     const originalSize = bytes.byteLength;
     let compression: "none" | "zlib" | "gzip" | "unknown" = "none";
     let wasDecompressed = false;
-    let decompressedSize = originalSize;
 
     try {
       // Check if file is compressed
@@ -90,29 +81,31 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
           bytes = decompressed;
           compression = compressionCheck;
           wasDecompressed = true;
-          decompressedSize = bytes.byteLength;
         }
       }
 
       // Verify GVAS header after decompression
       if (!this.matchesHeader(bytes)) {
         return {
-          data: null,
+          data: {
+            header: { magic: "GVAS", package: undefined },
+            properties: {},
+          },
           roundTripSupport: "none",
           metadata: {
             extension: fileName.split(".").pop() || "sav",
             formatLabel: "Unreal GVAS",
             fileSize: originalSize,
             wasDecompressed,
-            warnings: [`File does not have valid GVAS header after ${wasDecompressed ? compression + ' ' : ''}decompression`],
+            warnings: [
+              `File does not have valid GVAS header after ${wasDecompressed ? compression + " " : ""}decompression`,
+            ],
           },
         };
       }
 
       // Parse GVAS structure
-      const result = this.parseGvas(bytes, fileName);
-
-      const duration = performance.now() - startTime;
+      const result = this.parseGvas(bytes);
 
       return {
         data: result,
@@ -120,22 +113,26 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
         metadata: {
           extension: fileName.split(".").pop() || "sav",
           formatLabel: "Unreal GVAS",
-          compression: wasDecompressed ? compression : undefined,
           fileSize: originalSize,
           wasDecompressed,
-          warnings: wasDecompressed ? [`Decompressed from ${compression}`] : undefined,
+          warnings: wasDecompressed ? [`Decompressed from ${compression}`] : [],
+          ...(wasDecompressed && { compression }),
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
-        data: null,
+        data: {
+          header: { magic: "GVAS", package: undefined },
+          properties: {},
+        },
         roundTripSupport: "none",
         metadata: {
           extension: fileName.split(".").pop() || "sav",
           formatLabel: "Unreal GVAS",
           fileSize: originalSize,
           wasDecompressed,
-          warnings: [`Parse error: ${error.message}`],
+          warnings: [`Parse error: ${message}`],
         },
       };
     }
@@ -144,7 +141,9 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
   /**
    * Detect compression type from file header
    */
-  private detectCompression(bytes: Uint8Array): "zlib" | "gzip" | "raw-deflate" | null {
+  private detectCompression(
+    bytes: Uint8Array,
+  ): "zlib" | "gzip" | "unknown" | null {
     if (bytes.length < 2) return null;
 
     // Gzip magic: 0x1f 0x8b
@@ -153,8 +152,8 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
     }
 
     // Zlib magic: CMF 0x08 + FLG (checksum)
-    const cmf = bytes[0];
-    const flg = bytes[1];
+    const cmf = bytes[0]!;
+    const flg = bytes[1]!;
     if ((cmf & 0x0f) === 0x08) {
       const check = ((cmf << 8) + flg) % 31;
       if (check === 0) {
@@ -165,7 +164,7 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
     // Raw deflate detection (heuristic)
     // If it starts with compressed data pattern but not gzip/zlib headers
     if (this.looksLikeDeflate(bytes)) {
-      return "raw-deflate";
+      return "unknown";
     }
 
     return null;
@@ -178,10 +177,10 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
     // Very basic heuristic: check for typical deflate block headers
     // This is not foolproof but works for many UE saves
     if (bytes.length < 2) return false;
-    const firstByte = bytes[0];
+    const firstByte = bytes[0]!;
     // Check for BFINAL (bit 0) and BTYPE (bits 1-2)
     // BTYPE values: 00=stored, 01=static, 10=dynamic, 11=reserved
-    const bfinal = firstByte & 0x01;
+
     const btype = (firstByte >> 1) & 0x03;
     return btype !== 0x03; // Not reserved
   }
@@ -189,25 +188,42 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
   /**
    * Decompress with safety limit
    */
-  private decompressWithLimit(bytes: Uint8Array, kind: "zlib" | "gzip" | "raw-deflate"): Uint8Array | null {
+  private decompressWithLimit(
+    bytes: Uint8Array,
+    kind: "zlib" | "gzip" | "unknown",
+  ): Uint8Array | null {
     try {
       // Try pako first (if available)
-      // @ts-ignore
-      const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+      const pako =
+        window.pako || (typeof require !== "undefined" && require("pako"));
+
       if (pako) {
-        let result: Uint8Array;
-        if (kind === "gzip") {
-          result = pako.ungzip(bytes, { to: "string" });
-        } else if (kind === "zlib") {
-          result = pako.inflate(bytes, { to: "string" });
-        } else {
-          result = pako.inflateRaw(bytes, { to: "string" });
+        const inflated =
+          kind === "gzip"
+            ? pako.ungzip(bytes, { to: "string" })
+            : kind === "zlib"
+              ? pako.inflate(bytes, { to: "string" })
+              : pako.inflateRaw(bytes, { to: "string" });
+
+        if (typeof inflated === "string") {
+          const encoded = new TextEncoder().encode(inflated);
+
+          if (encoded.byteLength > this.maxDecompressedBytes) {
+            throw new Error(
+              `Decompressed size (${encoded.byteLength} bytes) exceeds limit`,
+            );
+          }
+
+          return encoded;
         }
-        const encoded = new TextEncoder().encode(result);
-        if (encoded.byteLength > this.maxDecompressedBytes) {
-          throw new Error(`Decompressed size (${encoded.byteLength} bytes) exceeds limit`);
+
+        if (inflated.byteLength > this.maxDecompressedBytes) {
+          throw new Error(
+            `Decompressed size (${inflated.byteLength} bytes) exceeds limit`,
+          );
         }
-        return encoded;
+
+        return inflated;
       }
 
       // Fallback: use browser's CompressionStream if available (modern browsers)
@@ -225,7 +241,7 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
   /**
    * Parse GVAS structure from bytes
    */
-  private parseGvas(bytes: Uint8Array, fileName: string): GvasParseResult {
+  private parseGvas(bytes: Uint8Array): GvasData {
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     let offset = 0;
 
@@ -238,15 +254,17 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
 
     // Read version string (null-terminated)
     const versionEnd = bytes.indexOf(0, offset);
-    if (versionEnd === -1) throw new Error("Invalid GVAS: no version string terminator");
+    if (versionEnd === -1)
+      throw new Error("Invalid GVAS: no version string terminator");
     const version = safeDecode(bytes.slice(offset, versionEnd));
     offset = versionEnd + 1;
 
     // Read package name (null-terminated, optional)
     const packageEnd = bytes.indexOf(0, offset);
-    const packageName = packageEnd !== -1
-      ? safeDecode(bytes.slice(offset, packageEnd))
-      : undefined;
+    const packageName =
+      packageEnd !== -1
+        ? safeDecode(bytes.slice(offset, packageEnd))
+        : undefined;
     if (packageEnd !== -1) offset = packageEnd + 1;
 
     // Parse properties
@@ -275,11 +293,18 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
     return {
       header: {
         magic: "GVAS",
+
         version,
-        package: packageName,
+
+        package: packageName || undefined,
       },
+
       properties,
-      unknownData: offset < bytes.byteLength ? bytes.slice(offset) : undefined,
+
+      unknownData:
+        offset < bytes.byteLength
+          ? bytes.slice(offset)
+          : (undefined as unknown as Uint8Array),
     };
   }
 
@@ -330,7 +355,12 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
   /**
    * Decode property value based on type
    */
-  private decodeValue(type: string, bytes: Uint8Array, view: DataView, offset: number): unknown {
+  private decodeValue(
+    type: string,
+    bytes: Uint8Array,
+    view: DataView,
+    offset: number,
+  ): unknown {
     // Basic type decoding - this is incomplete but covers common cases
     const typeLower = type.toLowerCase();
 
@@ -381,17 +411,31 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
    * Calculate offset to next property
    * In a full implementation, this would use the value size we just read
    */
-  private advanceToNextProperty(view: DataView, offset: number, prop: GvasProperty): number {
-    // For now, we already advanced in parseProperty
-    // A proper implementation would track exact offsets during parsing
+
+  private advanceToNextProperty(
+    _view: DataView,
+
+    offset: number,
+
+    _prop: GvasProperty,
+  ): number {
+    (void _view, _prop); // Mark as intentionally unused
+
     return offset;
   }
 
   /**
    * Determine round-trip support based on compression and file structure
    */
-  private getRoundTripSupport(compression: string, result: GvasParseResult): "stable" | "experimental" | "none" {
-    if (compression !== "none" && compression !== "zlib" && compression !== "gzip") {
+  private getRoundTripSupport(
+    compression: string,
+    result: GvasData,
+  ): "stable" | "experimental" | "none" {
+    if (
+      compression !== "none" &&
+      compression !== "zlib" &&
+      compression !== "gzip"
+    ) {
       return "none";
     }
 
@@ -412,7 +456,7 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
   /**
    * Serialize GVAS data back to binary format
    */
-  serialize(data: GvasParseResult): ArrayBuffer {
+  serialize(data: GvasData): ArrayBuffer {
     const { header, properties } = data;
 
     // Build header
@@ -432,37 +476,48 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasParseResult> {
 
     // Build properties (simplified - not fully compatible with UE)
     const propParts: Uint8Array[] = [];
-    for (const [name, prop] of Object.entries(properties)) {
+    for (const [name, prop] of Object.entries(properties) as [
+      string,
+      GvasProperty,
+    ][]) {
       const nameBytes = new TextEncoder().encode(name);
       const typeBytes = new TextEncoder().encode(prop.type);
 
       // Name length + name
       propParts.push(new Uint8Array(new ArrayBuffer(4)));
-      const nameView = new DataView(propParts[propParts.length - 1].buffer);
+      const nameView = new DataView(propParts[propParts.length - 1]!.buffer);
       nameView.setUint32(0, nameBytes.byteLength, true);
       propParts.push(nameBytes);
 
       // Type length + type
       propParts.push(new Uint8Array(new ArrayBuffer(4)));
-      const typeView = new DataView(propParts[propParts.length - 1].buffer);
+      const typeView = new DataView(propParts[propParts.length - 1]!.buffer);
       typeView.setUint32(0, typeBytes.byteLength, true);
       propParts.push(typeBytes);
 
       // Value size + value (simplified)
       let valueBytes: Uint8Array;
-      if (typeof prop.value === "object" && prop.value !== null && "_raw" in prop.value) {
-        valueBytes = new Uint8Array((prop.value as any)._raw);
+      if (
+        typeof prop.value === "object" &&
+        prop.value !== null &&
+        "_raw" in prop.value
+      ) {
+        valueBytes = new Uint8Array((prop.value as { _raw: number[] })._raw);
       } else if (typeof prop.value === "string") {
         valueBytes = new TextEncoder().encode(prop.value as string);
       } else if (typeof prop.value === "number") {
         valueBytes = new Uint8Array(4);
-        new DataView(valueBytes.buffer).setFloat32(0, prop.value as number, true);
+        new DataView(valueBytes.buffer).setFloat32(
+          0,
+          prop.value as number,
+          true,
+        );
       } else {
         valueBytes = new Uint8Array(0);
       }
 
       propParts.push(new Uint8Array(new ArrayBuffer(4)));
-      const valueView = new DataView(propParts[propParts.length - 1].buffer);
+      const valueView = new DataView(propParts[propParts.length - 1]!.buffer);
       valueView.setUint32(0, valueBytes.byteLength, true);
       propParts.push(valueBytes);
     }

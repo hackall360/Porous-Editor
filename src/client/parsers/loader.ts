@@ -9,7 +9,7 @@
  * for parsing save files using the appropriate parser based on file type.
  */
 
-import { parserRegistry } from "./index";
+import { parserRegistry, ParseMetadata } from "./index";
 import { createNbtParser } from "./nbt";
 import { createUnityParser } from "./unity";
 import { createGvasParser } from "./gvas";
@@ -51,7 +51,7 @@ export async function parseFile(file: File): Promise<{
   data: SaveData;
   type: "json" | "raw";
   parserId?: string;
-  metadata?: any;
+  metadata?: ParseMetadata;
 }> {
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
   const arrayBuffer = await file.arrayBuffer();
@@ -84,7 +84,10 @@ export async function parseFile(file: File): Promise<{
   const headerParser = parserRegistry.findByHeader(bytes, ext);
   if (headerParser) {
     try {
-      const result: ParseResult = await headerParser.parse(arrayBuffer, file.name);
+      const result: ParseResult = await headerParser.parse(
+        arrayBuffer,
+        file.name,
+      );
 
       if (result.data !== null) {
         const saveData = convertToSaveData(result.data, headerParser.id);
@@ -119,41 +122,49 @@ export async function parseFile(file: File): Promise<{
 /**
  * Convert parser-specific output to our SaveData type
  */
-function convertToSaveData(parsedData: any, parserId: string): SaveData {
+function convertToSaveData(parsedData: unknown, parserId: string): SaveData {
   // If the parser already returns something that looks like our JsonSaveData
-  if (typeof parsedData === "object" && parsedData !== null && !Array.isArray(parsedData)) {
+  if (
+    typeof parsedData === "object" &&
+    parsedData !== null &&
+    !Array.isArray(parsedData)
+  ) {
+    const obj = parsedData as Record<string, unknown>;
     // Check if it has a 'data' property (our wrapper format)
-    if (parsedData.data && typeof parsedData.data === "object") {
-      return parsedData.data as JsonSaveData;
+    if (obj["data"] && typeof obj["data"] === "object") {
+      return obj["data"] as JsonSaveData;
     }
 
     // Check if it has a 'properties' field (GVAS format)
-    if (parsedData.properties && typeof parsedData.properties === "object") {
+    if (obj["properties"] && typeof obj["properties"] === "object") {
       // Convert GVAS properties to a more usable format
       const result: Record<string, unknown> = {};
-      for (const [key, prop] of Object.entries(parsedData.properties)) {
+      const props = obj["properties"] as Record<string, { value: unknown }>;
+      for (const [key, prop] of Object.entries(props)) {
         result[key] = prop.value;
       }
+
       // Preserve metadata
-      (result as any)._parser = parserId;
-      (result as any)._gvasHeader = parsedData.header;
+      result["_parser"] = parserId;
+      result["_gvasHeader"] = obj["header"];
+
       return result as JsonSaveData;
     }
 
     // Check if it's a simplified NBT structure
-    if (parsedData.type === "compound" || parsedData.name !== undefined) {
+    if (obj["type"] === "compound" || obj["name"] !== undefined) {
       // NBT data - convert to plain object
-      return simplifyNbtData(parsedData) as JsonSaveData;
+      return simplifyNbtData(obj) as JsonSaveData;
     }
 
     // Check if it's Unity PlayerPrefs format
-    if (parsedData.data !== undefined && parsedData.meta !== undefined) {
-      return parsedData.data as JsonSaveData;
+    if (obj["data"] !== undefined && obj["meta"] !== undefined) {
+      return obj["data"] as JsonSaveData;
     }
 
     // Assume it's already a usable JSON-like object
-    (parsedData as any)._parser = parserId;
-    return parsedData as JsonSaveData;
+    obj["_parser"] = parserId;
+    return obj as JsonSaveData;
   }
 
   // Fallback: wrap in raw data
@@ -165,19 +176,26 @@ function convertToSaveData(parsedData: any, parserId: string): SaveData {
 /**
  * Simplify NBT compound data to plain JavaScript object
  */
-function simplifyNbtData(nbtData: any): Record<string, unknown> {
+function simplifyNbtData(nbtData: unknown): Record<string, unknown> {
   if (!nbtData) return {};
 
   // If it's already a simplified structure (from our simplifyNbt function)
-  if (typeof nbtData === "object" && nbtData !== null && !Array.isArray(nbtData)) {
-    if (nbtData.type === "compound") {
+  if (
+    typeof nbtData === "object" &&
+    nbtData !== null &&
+    !Array.isArray(nbtData)
+  ) {
+    const obj = nbtData as Record<string, unknown>;
+    if (obj["type"] === "compound") {
       const result: Record<string, unknown> = {};
-      for (const entry of nbtData.entries || []) {
+      const entries =
+        (obj["entries"] as Array<{ name: string; value: unknown }>) || [];
+      for (const entry of entries) {
         result[entry.name] = simplifyNbtData(entry.value);
       }
       return result;
     }
-    return nbtData as Record<string, unknown>;
+    return obj;
   }
 
   return { value: nbtData };
@@ -188,7 +206,7 @@ function simplifyNbtData(nbtData: any): Record<string, unknown> {
  */
 export function getParserIdForExtension(ext: string): string | undefined {
   const parsers = parserRegistry.getByExtension(ext);
-  return parsers.length > 0 ? parsers[0].id : undefined;
+  return parsers.length > 0 ? parsers[0]!.id : undefined;
 }
 
 /**

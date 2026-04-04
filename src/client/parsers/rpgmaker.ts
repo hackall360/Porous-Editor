@@ -12,7 +12,7 @@
  * Based on research from saveeditor (paradoxie) and RPG Maker file format analysis.
  */
 
-import { BaseParser, ParseResult, toUint8Array } from "./index";
+import { BaseParser, ParseResult } from "./index";
 
 // ====================== Type Definitions ======================
 
@@ -46,33 +46,21 @@ export type RPGMakerCompressionType =
   | "pako-raw"
   | "pako-gzip";
 
-/**
- * Check if a value is a known compression type
- */
-function isKnownCompressionType(input: unknown): input is RPGMakerCompressionType {
-  return (
-    input === "lzstring" ||
-    input === "none" ||
-    input === "pako" ||
-    input === "fflate" ||
-    input === "pako-mojibake-fix" ||
-    input === "fflate-mojibake-fix" ||
-    input === "pako-raw" ||
-    input === "pako-gzip"
-  );
-}
-
 // ====================== Compression Utilities ======================
 
 /**
  * Try to decompress data using various algorithms
  * Returns the decompressed string or null if none work
  */
-function tryDecompressAll(data: Uint8Array): { result: string | null; compression: RPGMakerCompressionType } {
+function tryDecompressAll(data: Uint8Array): {
+  result: string | null;
+  compression: RPGMakerCompressionType;
+} {
   // Try LZString (base64)
   try {
-    // @ts-ignore - LZString may be available globally
-    const LZString = window.LZString || (typeof require !== 'undefined' && require('lz-string'));
+    const LZString =
+      window.LZString ||
+      (typeof require !== "undefined" && require("lz-string"));
     if (LZString) {
       const textData = new TextDecoder().decode(data);
       const decompressed = LZString.decompressFromBase64(textData);
@@ -86,8 +74,9 @@ function tryDecompressAll(data: Uint8Array): { result: string | null; compressio
 
   // Try LZString (binary)
   try {
-    // @ts-ignore
-    const LZString = window.LZString || (typeof require !== 'undefined' && require('lz-string'));
+    const LZString =
+      window.LZString ||
+      (typeof require !== "undefined" && require("lz-string"));
     if (LZString) {
       const binaryString = binaryToString(data);
       const decompressed = LZString.decompress(binaryString);
@@ -101,11 +90,18 @@ function tryDecompressAll(data: Uint8Array): { result: string | null; compressio
 
   // Try pako (zlib)
   try {
-    // @ts-ignore
-    const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+    const pako =
+      window.pako || (typeof require !== "undefined" && require("pako"));
+
     if (pako) {
       const inflated = pako.inflate(data);
-      const decompressed = new TextDecoder().decode(inflated);
+
+      const decompressed = new TextDecoder().decode(
+        typeof inflated === "string"
+          ? new TextEncoder().encode(inflated)
+          : inflated,
+      );
+
       if (decompressed && isValidJson(decompressed)) {
         return { result: decompressed, compression: "pako" };
       }
@@ -116,10 +112,10 @@ function tryDecompressAll(data: Uint8Array): { result: string | null; compressio
 
   // Try fflate
   try {
-    // @ts-ignore
-    const fflate = window.fflate || (typeof require !== 'undefined' && require('fflate'));
+    const fflate =
+      window.fflate || (typeof require !== "undefined" && require("fflate"));
     if (fflate) {
-      const inflated = fflate.inflateSync(data);
+      const inflated = fflate.inflateSync(data) as Uint8Array;
       const decompressed = new TextDecoder().decode(inflated);
       if (decompressed && isValidJson(decompressed)) {
         return { result: decompressed, compression: "fflate" };
@@ -130,13 +126,22 @@ function tryDecompressAll(data: Uint8Array): { result: string | null; compressio
   }
 
   // Try raw deflate with pako
+
   try {
-    // @ts-ignore
-    const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+    const pako =
+      window.pako || (typeof require !== "undefined" && require("pako"));
+
     if (pako) {
       const rawBuffer = data.slice(2); // Skip zlib header
+
       const inflated = pako.inflateRaw(rawBuffer);
-      const decompressed = new TextDecoder().decode(inflated);
+
+      const decompressed = new TextDecoder().decode(
+        typeof inflated === "string"
+          ? new TextEncoder().encode(inflated)
+          : inflated,
+      );
+
       if (decompressed && isValidJson(decompressed)) {
         return { result: decompressed, compression: "pako-raw" };
       }
@@ -146,12 +151,19 @@ function tryDecompressAll(data: Uint8Array): { result: string | null; compressio
   }
 
   // Try gzip
+
   try {
-    // @ts-ignore
-    const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+    const pako =
+      window.pako || (typeof require !== "undefined" && require("pako"));
+
     if (pako) {
       const inflated = pako.ungzip(data);
-      const decompressed = new TextDecoder().decode(inflated);
+      const decompressed = new TextDecoder().decode(
+        typeof inflated === "string"
+          ? new TextEncoder().encode(inflated)
+          : inflated,
+      );
+
       if (decompressed && isValidJson(decompressed)) {
         return { result: decompressed, compression: "pako-gzip" };
       }
@@ -167,7 +179,7 @@ function tryDecompressAll(data: Uint8Array): { result: string | null; compressio
  * Convert Uint8Array to binary string for LZString
  */
 function binaryToString(data: Uint8Array): string {
-  let binary = '';
+  let binary = "";
   const chunkSize = 8192;
   for (let i = 0; i < data.length; i += chunkSize) {
     binary += String.fromCharCode(...data.subarray(i, i + chunkSize));
@@ -196,8 +208,11 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
 
   private detectedCompression: RPGMakerCompressionType | null = null;
 
-  async parse(input: ArrayBuffer, fileName: string): Promise<ParseResult<RPGMakerSave>> {
-    const startTime = performance.now();
+  protected async doParse(
+    input: ArrayBuffer,
+
+    fileName: string,
+  ): Promise<ParseResult<RPGMakerSave>> {
     const data = new Uint8Array(input);
 
     try {
@@ -214,7 +229,7 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
             formatLabel: "RPG Maker MV/MZ",
             fileSize: input.byteLength,
             wasDecompressed: false,
-            warnings: undefined,
+            warnings: [],
           },
         };
       }
@@ -222,16 +237,18 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
       // Try various decompression methods
       const { result, compression } = tryDecompressAll(data);
       if (!result) {
-        throw new Error("Unable to decompress save file. Unknown or unsupported compression format.");
+        throw new Error(
+          "Unable to decompress save file. Unknown or unsupported compression format.",
+        );
       }
 
       this.detectedCompression = compression;
       const parsed = JSON.parse(result) as RPGMakerSave;
 
       // Add compression metadata to parsed data (for round-trip)
-      (parsed as any)._compressionType = compression;
+      (parsed as Record<string, unknown>)["_compressionType"] = compression;
 
-      const duration = performance.now() - startTime;
+      // duration tracking removed - was unused
 
       return {
         data: parsed,
@@ -242,19 +259,35 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
           compression,
           fileSize: input.byteLength,
           wasDecompressed: true,
-          warnings: this.getWarnings(compression),
+          warnings: this.getWarnings(compression) ?? [],
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
-        data: null,
+        data: {
+          gold: 0,
+          level: 0,
+          variables: {},
+          switches: [],
+          items: [],
+          party: null,
+
+          actors: null,
+          system: null,
+        },
         roundTripSupport: "none",
+
         metadata: {
           extension: fileName.split(".").pop() || "rpgsave",
+
           formatLabel: "RPG Maker MV/MZ",
+
           fileSize: input.byteLength,
+
           wasDecompressed: false,
-          warnings: [`Parse error: ${error.message}`],
+
+          warnings: [`Parse error: ${message}`],
         },
       };
     }
@@ -263,7 +296,9 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
   /**
    * Determine round-trip support based on compression type
    */
-  private getRoundTripSupport(compression: RPGMakerCompressionType): "stable" | "experimental" | "none" {
+  private getRoundTripSupport(
+    compression: RPGMakerCompressionType,
+  ): "stable" | "experimental" | "none" {
     switch (compression) {
       case "lzstring":
       case "none":
@@ -281,7 +316,9 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
   /**
    * Get warnings based on compression type
    */
-  private getWarnings(compression: RPGMakerCompressionType): string[] | undefined {
+  private getWarnings(
+    compression: RPGMakerCompressionType,
+  ): string[] | undefined {
     const warnings: string[] = [];
     if (compression.includes("mojibake")) {
       warnings.push("File used mojibake encoding fix for character encoding.");
@@ -299,14 +336,19 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
     const compression = this.detectedCompression || "lzstring";
 
     // Remove internal metadata
-    const { _compressionType, ...saveData } = data as any;
+    const { _compressionType: _ct, ...saveData } = data as Record<
+      string,
+      unknown
+    >;
+    void _ct;
 
     const json = JSON.stringify(saveData);
 
     switch (compression) {
       case "lzstring": {
-        // @ts-ignore
-        const LZString = window.LZString || (typeof require !== 'undefined' && require('lz-string'));
+        const LZString =
+          window.LZString ||
+          (typeof require !== "undefined" && require("lz-string"));
         if (LZString) {
           const compressed = LZString.compressToBase64(json);
           return new TextEncoder().encode(compressed).buffer;
@@ -316,41 +358,42 @@ export class RPGMakerParser extends BaseParser<ArrayBuffer, RPGMakerSave> {
       }
 
       case "pako": {
-        // @ts-ignore
-        const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+        const pako =
+          window.pako || (typeof require !== "undefined" && require("pako"));
         if (pako) {
           const compressed = pako.deflate(new TextEncoder().encode(json));
-          return compressed.buffer;
+          return compressed.buffer as ArrayBuffer;
         }
         return new TextEncoder().encode(json).buffer;
       }
 
       case "fflate": {
-        // @ts-ignore
-        const fflate = window.fflate || (typeof require !== 'undefined' && require('fflate'));
+        const fflate =
+          window.fflate ||
+          (typeof require !== "undefined" && require("fflate"));
         if (fflate) {
           const compressed = fflate.deflateSync(new TextEncoder().encode(json));
-          return (compressed as Uint8Array).buffer;
+          return (compressed as Uint8Array).buffer as ArrayBuffer;
         }
         return new TextEncoder().encode(json).buffer;
       }
 
       case "pako-raw": {
-        // @ts-ignore
-        const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+        const pako =
+          window.pako || (typeof require !== "undefined" && require("pako"));
         if (pako) {
           const compressed = pako.deflateRaw(new TextEncoder().encode(json));
-          return compressed.buffer;
+          return compressed.buffer as ArrayBuffer;
         }
         return new TextEncoder().encode(json).buffer;
       }
 
       case "pako-gzip": {
-        // @ts-ignore
-        const pako = window.pako || (typeof require !== 'undefined' && require('pako'));
+        const pako =
+          window.pako || (typeof require !== "undefined" && require("pako"));
         if (pako) {
           const compressed = pako.gzip(new TextEncoder().encode(json));
-          return compressed.buffer;
+          return compressed.buffer as ArrayBuffer;
         }
         return new TextEncoder().encode(json).buffer;
       }
