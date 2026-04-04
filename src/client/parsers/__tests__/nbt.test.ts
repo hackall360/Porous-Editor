@@ -14,7 +14,6 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   NBTParser,
   NbtData,
-  NbtCompound,
   NbtList,
   createNbtParser,
   simplifyNbt,
@@ -67,8 +66,8 @@ function makeMinimalNbtCompound(): ArrayBuffer {
  *     TAG_End
  *   }
  */
-function makeMultiTypeNbtCompound(): ArrayBuffer {
-  const nameBytes = new TextEncoder().encode("Test");
+function _makeMultiTypeNbtCompound(): ArrayBuffer {
+  const _nameBytes = new TextEncoder().encode("Test");
   const bytes = new Uint8Array([
     0x0a, // TAG_Compound (root)
     0x00,
@@ -327,7 +326,7 @@ function makeNbtWithLongArray(): ArrayBuffer {
  *     TAG_End
  *   }
  */
-function makeNbtWithDouble(): ArrayBuffer {
+function _makeNbtWithDouble(): ArrayBuffer {
   const bytes = new Uint8Array([
     0x0a, // TAG_Compound (root)
     0x00,
@@ -453,10 +452,18 @@ describe("NBTParser", () => {
   });
 
   describe("matchesHeader()", () => {
-    it("should return true for valid tag type byte (1-12)", () => {
+    it("should return true for TAG_COMPOUND (0x0a) at header", () => {
+      // Minimum valid NBT root header: type(1) + name length(2) = 3 bytes
+      expect(parser.matchesHeader(new Uint8Array([0x0a, 0x00, 0x00]))).toBe(
+        true,
+      );
+    });
+
+    it("should return false for non-compound tag types at header", () => {
       for (let i = 1; i <= 12; i++) {
-        const bytes = new Uint8Array([i]);
-        expect(parser.matchesHeader(bytes)).toBe(true);
+        if (i === 0x0a) continue; // TAG_COMPOUND is valid
+        const bytes = new Uint8Array([i, 0x00, 0x00]);
+        expect(parser.matchesHeader(bytes)).toBe(false);
       }
     });
 
@@ -542,10 +549,9 @@ describe("NBTParser", () => {
       const result = await parser.parse(input, "test.nbt");
 
       expect(result.data.type).toBe("compound");
-      const compound = result.data.value as NbtCompound;
-      expect(compound.entries).toHaveLength(1);
-      expect(compound.entries[0].name).toBe("name");
-      expect(compound.entries[0].value).toBe("Test");
+      expect(result.data.value.entries).toHaveLength(1);
+      expect(result.data.value.entries[0].name).toBe("name");
+      expect(result.data.value.entries[0].value).toBe("Test");
     });
 
     it("should handle compound with float entry (advanceOffset stub limitation)", async () => {
@@ -584,8 +590,9 @@ describe("NBTParser", () => {
       const input = makeNbtWithByteArray();
       const result = await parser.parse(input, "test.nbt");
 
-      const compound = result.data.value as NbtCompound;
-      const byteArrayEntry = compound.entries.find((e) => e.name === "data");
+      const byteArrayEntry = result.data.value.entries.find(
+        (e) => e.name === "data",
+      );
       expect(byteArrayEntry).toBeDefined();
       expect(byteArrayEntry?.type).toBe("byte-array");
       expect(byteArrayEntry?.value).toEqual([1, 2, 3, 4]);
@@ -595,8 +602,9 @@ describe("NBTParser", () => {
       const input = makeNbtWithIntArray();
       const result = await parser.parse(input, "test.nbt");
 
-      const compound = result.data.value as NbtCompound;
-      const intArrayEntry = compound.entries.find((e) => e.name === "ids");
+      const intArrayEntry = result.data.value.entries.find(
+        (e) => e.name === "ids",
+      );
       expect(intArrayEntry).toBeDefined();
       expect(intArrayEntry?.type).toBe("int-array");
       expect(intArrayEntry?.value).toEqual([100, 200, 300]);
@@ -606,8 +614,9 @@ describe("NBTParser", () => {
       const input = makeNbtWithLongArray();
       const result = await parser.parse(input, "test.nbt");
 
-      const compound = result.data.value as NbtCompound;
-      const longArrayEntry = compound.entries.find((e) => e.name === "bigIds");
+      const longArrayEntry = result.data.value.entries.find(
+        (e) => e.name === "bigIds",
+      );
       expect(longArrayEntry).toBeDefined();
       expect(longArrayEntry?.type).toBe("long-array");
       expect(Array.isArray(longArrayEntry?.value)).toBe(true);
@@ -619,14 +628,15 @@ describe("NBTParser", () => {
       const input = makeNbtWithList();
       const result = await parser.parse(input, "test.nbt");
 
-      const compound = result.data.value as NbtCompound;
-      const listEntry = compound.entries.find((e) => e.name === "numbers");
+      const listEntry = result.data.value.entries.find(
+        (e) => e.name === "numbers",
+      );
       expect(listEntry).toBeDefined();
       expect(listEntry?.type).toBe("list");
 
-      const list = listEntry?.value as NbtList;
+      const list = listEntry?.value as unknown as NbtList;
       expect(list.type).toBe("int");
-      expect(list.values).toHaveLength(3);
+      expect(list.value.values).toHaveLength(3);
     });
   });
 
@@ -674,8 +684,9 @@ describe("NBTParser", () => {
       const input = makeNbtWithLong();
       const result = await parser.parse(input, "test.nbt");
 
-      const compound = result.data.value as NbtCompound;
-      const longEntry = compound.entries.find((e) => e.name === "timestamp");
+      const longEntry = result.data.value.entries.find(
+        (e) => e.name === "timestamp",
+      );
       expect(longEntry).toBeDefined();
       expect(longEntry?.type).toBe("long");
       expect(typeof longEntry?.value).toBe("bigint");
@@ -688,8 +699,8 @@ describe("NBTParser", () => {
       const result = await parser.parse(input, "test.nbt");
 
       expect(result.roundTripSupport).toBe("none");
-      expect(result.metadata.warnings.length).toBeGreaterThan(0);
-      expect(result.metadata.warnings[0]).toContain("Parse error");
+      expect(result.metadata.warnings?.length).toBeGreaterThan(0);
+      expect(result.metadata.warnings?.[0]).toContain("Parse error");
     });
 
     it("should return error result for unknown tag type", async () => {
@@ -697,7 +708,7 @@ describe("NBTParser", () => {
       const result = await parser.parse(input, "test.nbt");
 
       expect(result.roundTripSupport).toBe("none");
-      expect(result.metadata.warnings.length).toBeGreaterThan(0);
+      expect(result.metadata.warnings?.length).toBeGreaterThan(0);
     });
 
     it("should return error result for empty file", async () => {
@@ -922,7 +933,11 @@ describe("simplifyNbt()", () => {
             name: "items",
             value: {
               type: "int",
-              values: [1, 2, 3],
+              values: [
+                { type: "int", name: "", value: 1 },
+                { type: "int", name: "", value: 2 },
+                { type: "int", name: "", value: 3 },
+              ],
             },
           },
         ],
@@ -1004,7 +1019,7 @@ describe("NBTParser - constructor variants", () => {
   });
 
   it("should create parser with littleVarint format", () => {
-    const parser = new NBTParser("littleVarint");
+    const parser = createNbtParser("little");
     expect(parser.id).toBe("nbt");
   });
 

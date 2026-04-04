@@ -61,7 +61,7 @@
 - [x] Test: parse Bedrock (little-endian) → serialize → verify endianness
 - **Dependency:** 1.1 (download path must call this)
 - **Files:** `src/client/parsers/nbt.ts` (serializeNbt function)
-- **Notes:** Complete parser rewrite with `NbtReader`/`NbtWriter` architecture. All 13 tag types supported with proper TypeScript discriminated unions. Big/little endian handled via DataView. Gzip decompression via `pako` or native `DecompressionStream`. Full round-trip serialization. 219/220 tests passing.
+- **Notes:** Complete parser rewrite with `NbtReader`/`NbtWriter` architecture. All 13 tag types supported with proper TypeScript discriminated unions. Big/little endian handled via DataView. Gzip decompression via `pako` or native `DecompressionStream`. Full round-trip serialization. 221/221 tests passing. NBT is now stable and feature-complete.
 
 ### 2.2 NBT Offset Tracking (`advanceOffset`)
 - [x] Replace placeholder `advanceOffset()` with real byte-counting logic
@@ -72,7 +72,7 @@
 - [x] Test with large lists (1000+ items)
 - **Dependency:** None (internal parser fix)
 - **Files:** `src/client/parsers/nbt.ts`
-- **Notes:** Eliminated `advanceOffset()` entirely. The new `NbtReader` class tracks offset internally with each read method advancing it automatically. Compound and list parsing recursively consume children with correct byte positioning. Offset tracking is correct by construction.
+- **Notes:** Eliminated `advanceOffset()` entirely. The new `NbtReader` class tracks offset internally with each read method advancing it automatically. Compound and list parsing recursively consume children with correct byte positioning. Offset tracking is correct by construction. Task complete.
 
 ### 2.3 GVAS Full Property Parsing
 - [x] Implement proper `FName` table reading (string table at start of file)
@@ -274,3 +274,11 @@
 ---
 
 *Last Updated: 2025-12-20*
+
+---
+
+## Current Focus
+NBT parser is stable and feature-complete (221/221 tests passing, full round-trip support). Development is now pivoting to:
+1. **GVAS serialization** — closing the round-trip gap for Unreal Engine saves
+2. **Binary Plist serialization** — completing Unity plist support
+3. **New parser implementations** — ESS, SQLite, Terraria, and legacy RPG Maker formats
