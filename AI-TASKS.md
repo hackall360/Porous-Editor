@@ -52,27 +52,27 @@
 ## Phase 2: Parser Completion
 *Finish the parsers that exist but are incomplete.*
 
-### 2.1 NBT Binary Serialization
+### 2.1 NBT Binary Serialization — [DEPRECATED]
 - [x] Implement `serializeNbt(data: NbtData, format)` to produce real binary NBT
-- [x] Write tag type → byte encoding for all 13 tag types (END, BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BYTE_ARRAY, STRING, LIST, COMPOUND, INT_ARRAY, LONG_ARRAY)
+- [x] Write tag type → byte encoding for all 13 tag types
 - [x] Handle big-endian and little-endian output
 - [x] Handle gzip recompression when original was compressed
 - [x] Test: parse Minecraft `.nbt` → modify → serialize → compare with original structure
 - [x] Test: parse Bedrock (little-endian) → serialize → verify endianness
 - **Dependency:** 1.1 (download path must call this)
 - **Files:** `src/client/parsers/nbt.ts` (serializeNbt function)
-- **Notes:** Complete parser rewrite with `NbtReader`/`NbtWriter` architecture. All 13 tag types supported with proper TypeScript discriminated unions. Big/little endian handled via DataView. Gzip decompression via `pako` or native `DecompressionStream`. Full round-trip serialization. 219/220 tests passing.
+- **Notes:** Full rewrite completed on `feature/nbt` branch with `NbtReader`/`NbtWriter` architecture. Deprecated from `develop` to focus on GVAS/Unity. Code preserved on feature branch for future reintegration.
 
-### 2.2 NBT Offset Tracking (`advanceOffset`)
+### 2.2 NBT Offset Tracking (`advanceOffset`) — [DEPRECATED]
 - [x] Replace placeholder `advanceOffset()` with real byte-counting logic
-- [x] Each tag type consumes a known number of bytes — implement a switch that returns exact size
+- [x] Each tag type consumes a known number of bytes
 - [x] For LIST and COMPOUND, recursively calculate child sizes
-- [x] Alternative approach: refactor `parseNbt` to return `{ value, bytesRead }` tuples instead of relying on offset mutation
+- [x] Alternative approach: refactor `parseNbt` to return `{ value, bytesRead }` tuples
 - [x] Test with deeply nested NBT compounds (10+ levels)
 - [x] Test with large lists (1000+ items)
 - **Dependency:** None (internal parser fix)
 - **Files:** `src/client/parsers/nbt.ts`
-- **Notes:** Eliminated `advanceOffset()` entirely. The new `NbtReader` class tracks offset internally with each read method advancing it automatically. Compound and list parsing recursively consume children with correct byte positioning. Offset tracking is correct by construction.
+- **Notes:** Offset tracking was correct by construction in the rewrite. Task complete on `feature/nbt` branch. Deprecated from `develop`.
 
 ### 2.3 GVAS Full Property Parsing
 - [x] Implement proper `FName` table reading (string table at start of file)
@@ -258,7 +258,7 @@
 |---|---|---|---|---|---|---|
 | JSON | `.json`, `.save` | Built-in | ✅ | ✅ | ✅ | ✅ Stable |
 | RPG Maker MV/MZ | `.rpgsave`, `.rmmzsave` | rpgmaker | ✅ | ✅ | ✅ | ✅ Stable |
-| NBT (Minecraft) | `.nbt`, `.mca`, `.mcr` | nbt | ✅ | ✅ | ✅ Full | ✅ Stable |
+| NBT (Minecraft) | `.nbt`, `.mca`, `.mcr` | nbt | ✅ | ⚠️ | ⚠️ Stub | ⚠️ Deprecated (see `feature/nbt`) |
 | GVAS (Unreal) | `.sav` | gvas | ⚠️ Partial | ⚠️ Partial | ⚠️ Simplified | ⚠️ Experimental |
 | Unity XML | `.xml` | unity | ✅ | ✅ | ✅ | ✅ Stable |
 | Unity PLIST | `.plist` | unity | ✅ XML + Binary | ✅ | ✅ | ⚠️ Partial (no binary serialize) |
@@ -270,6 +270,14 @@
 | RPG Maker 2k/2k3 | `.lsd` | — | ❌ | ❌ | ❌ | ❌ Not implemented |
 | Emulator saves | `.srm`, `.dsv`, `.frz` | — | ❌ | ❌ | ❌ | ❌ Not implemented |
 | Generic binary | `.dat`, `.bin`, etc. | — | ⚠️ Raw text | ⚠️ Raw text | ⚠️ Raw text | ❌ None |
+
+---
+
+## Current Focus
+**NBT is deprecated on `develop`** — full rewrite preserved on `feature/nbt` branch. Development is now focused on:
+1. **GVAS serialization** — closing the round-trip gap for Unreal Engine saves (Phase 2.3 remaining items)
+2. **Binary Plist serialization** — completing Unity plist support (Phase 2.4 remaining item)
+3. **New parser implementations** — ESS, SQLite, Terraria, and legacy RPG Maker formats (Phase 3)
 
 ---
 
