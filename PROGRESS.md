@@ -1,7 +1,7 @@
 # Current Progress & Active Tasks
 
 ## Primary Task
-Scan codebase for errors, warnings, and wiring issues — then fix them
+Build generic recursive JSON tree editor to replace hardcoded renderJSONEditor()
 
 Status: Complete
 
@@ -43,3 +43,8 @@ Last Updated: 2025-12-19T15:30:00Z
 - Fixed Record<string, unknown> property access to use bracket notation (TS4111)
 - Verified zero errors, zero warnings in IDE diagnostics
 - Updated PROBLEMS.md and FIXED-PROBLEMS.md
+- Created src/client/ui/tree-editor.ts with recursive JSON tree view (expand/collapse, inline editing, add/delete, search/filter)
+- Replaced hardcoded renderJSONEditor() to use generic renderTreeEditor()
+- Removed old updateMoney, updateItem, updateStat functions and window declarations
+- Verified tsc --noEmit passes with zero errors
+- Verified npm run build succeeds (120.3kb bundle)
