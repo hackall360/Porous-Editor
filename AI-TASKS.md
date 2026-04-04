@@ -75,17 +75,18 @@
 - **Notes:** Eliminated `advanceOffset()` entirely. Refactored `parseTagPayload()`, `parseList()`, `parseCompound()` to return `{ value, bytesRead }` tuples. Offset tracking is now correct by construction. All compound/array tests pass.
 
 ### 2.3 GVAS Full Property Parsing
-- [ ] Implement proper `FName` table reading (string table at start of file)
-- [ ] Parse struct types: Vector, Rotator, Transform, Guid, LinearColor, etc.
-- [ ] Parse array properties with proper element type dispatch
-- [ ] Parse map properties (key-value pair serialization)
-- [ ] Parse set properties
-- [ ] Handle optional property flags and array index tracking
-- [ ] Update `decodeValue()` to dispatch to type-specific parsers instead of returning raw bytes
+- [x] Implement proper `FName` table reading (string table at start of file)
+- [x] Parse struct types: Vector, Rotator, Transform, Guid, LinearColor, etc.
+- [x] Parse array properties with proper element type dispatch
+- [x] Parse map properties (key-value pair serialization)
+- [x] Parse set properties
+- [x] Handle optional property flags and array index tracking
+- [x] Update `decodeValue()` to dispatch to type-specific parsers instead of returning raw bytes
 - [ ] Update `serialize()` to produce UE-compatible binary output
 - [ ] Test with a real Palworld or UE save file
 - **Dependency:** 1.1
 - **Files:** `src/client/parsers/gvas.ts`
+- **Notes:** Refactored with `{ value, bytesRead }` tuples for correct offset tracking. Added full type dispatch for Int/Int64/Float/Double/Bool/Byte/Name/Str/Text properties. Implemented ArrayProperty, StructProperty, MapProperty, and SetProperty parsing with element type dispatch. Serialize still uses simplified format (marked as remaining).
 
 ### 2.4 Binary Plist Support
 - [ ] The `plist` npm package is already in `package.json` but not used in browser build
