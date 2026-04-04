@@ -116,6 +116,7 @@ export interface StoredSave {
   data: SaveData;
   type: "json" | "raw";
   timestamp: number;
+  parserId: string | null;
 }
 
 /**
@@ -126,6 +127,7 @@ export interface EditorState {
   originalName: string;
   originalExt: string;
   storedType: "json" | "raw";
+  parserId: string | null;
 }
 
 /**

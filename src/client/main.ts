@@ -14,7 +14,7 @@ import {
 } from "./types";
 
 // Parser system imports
-import { initializeParsers, parseFile } from "./parsers/loader";
+import { initializeParsers, parseFile, parserRegistry } from "./parsers/loader";
 
 // ====================== Type Declarations ======================
 declare global {
@@ -42,6 +42,7 @@ class EditorStateManager {
     originalName: "",
     originalExt: "",
     storedType: "json",
+    parserId: null,
   };
 
   getCurrentData(): SaveData | null {
@@ -60,6 +61,10 @@ class EditorStateManager {
     return this.state.storedType;
   }
 
+  getParserId(): string | null {
+    return this.state.parserId ?? null;
+  }
+
   setState(data: Partial<EditorState>): void {
     this.state = { ...this.state, ...data };
   }
@@ -70,6 +75,7 @@ class EditorStateManager {
       originalName: "",
       originalExt: "",
       storedType: "json",
+      parserId: null,
     };
   }
 }
@@ -84,6 +90,7 @@ function saveToLocalStorage(
   ext: string,
   data: SaveData,
   type: "json" | "raw",
+  parserId?: string,
 ): void {
   const payload: StoredSave = {
     name,
@@ -91,6 +98,7 @@ function saveToLocalStorage(
     data,
     type,
     timestamp: Date.now(),
+    parserId: parserId ?? null,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -121,22 +129,17 @@ async function handleUpload(file: File | null): Promise<void> {
   try {
     // Use the new parser system for intelligent format detection
     const result = await parseFile(file);
-    saveToLocalStorage(originalName, ext, result.data, result.type);
+    saveToLocalStorage(
+      originalName,
+      ext,
+      result.data,
+      result.type,
+      result.parserId,
+    );
     window.location.href = "editor.html";
   } catch (err) {
     console.error("Upload failed:", err);
-    // Fallback to raw text if parser system fails
-    const reader = new FileReader();
-
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      const rawData = { raw: e.target?.result as string } as RawSaveData;
-
-      saveToLocalStorage(originalName, ext, rawData, "raw");
-
-      window.location.href = "editor.html";
-    };
-
-    reader.readAsText(file);
+    alert("Failed to process file. Please try a different file.");
   }
 }
 
@@ -153,6 +156,7 @@ function loadEditorData(): void {
     originalName: stored.name,
     originalExt: stored.ext,
     storedType: stored.type,
+    parserId: stored.parserId ?? null,
   });
 
   renderInfoPanel();
@@ -484,61 +488,72 @@ function clearData(): void {
   }
 }
 
-function downloadSave(): void {
+async function downloadSave(): Promise<void> {
   const currentData = editorState.getCurrentData();
-
   const originalName = editorState.getOriginalName();
-
-  const originalExt = editorState.getOriginalExt();
+  void editorState.getOriginalExt(); // Available for future use
+  const parserId = editorState.getParserId();
 
   if (!currentData) {
     console.error("No data to download");
-
     alert("No data available to download.");
-
     return;
   }
 
   let blob: Blob;
-
   let filename: string;
 
+  // Try to use the parser's serialize method for round-trip support
+  if (parserId) {
+    const parser = parserRegistry.get(parserId);
+    if (parser && typeof parser.serialize === "function") {
+      try {
+        const serialized = await parser.serialize(currentData);
+        blob = new Blob([serialized], { type: "application/octet-stream" });
+        filename = originalName || "edited_save";
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, filename);
+        URL.revokeObjectURL(url);
+        showDownloadSuccess();
+        return;
+      } catch (err) {
+        console.warn(
+          `Parser '${parserId}' serialization failed, falling back to JSON:`,
+          err,
+        );
+      }
+    }
+  }
+
+  // Fallback: raw text or JSON
   if (isRawSaveData(currentData)) {
     blob = new Blob([currentData.raw], { type: "application/octet-stream" });
-
-    filename = originalName || `edited_save.${originalExt}`;
+    filename = originalName || "edited_save";
   } else {
     blob = new Blob([JSON.stringify(currentData, null, 2)], {
       type: "application/json",
     });
-
     filename = originalName?.replace(/\.[^/.]+$/, "") || "edited_save";
-
     filename += ".json";
   }
 
   const url = URL.createObjectURL(blob);
+  triggerDownload(url, filename);
+  URL.revokeObjectURL(url);
+  showDownloadSuccess();
+}
+
+function triggerDownload(url: string, filename: string): void {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+}
 
-  // Mini celebration animation
-  const panel = document.querySelector("#editorContent");
-  const panelElement = panel as HTMLElement | null;
-
-  if (panelElement) {
-    panelElement.style.transition = "transform 0.3s";
-    panelElement.style.transform = "scale(1.03)";
-    setTimeout(() => {
-      panelElement.style.transform = "scale(1)";
-    }, 300);
-  }
-
-  showNotification("Download started!");
+function showDownloadSuccess(): void {
+  showNotification("✓ Save downloaded");
 }
 
 // ====================== Modal Helpers ======================
