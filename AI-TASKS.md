@@ -53,48 +53,52 @@
 *Finish the parsers that exist but are incomplete.*
 
 ### 2.1 NBT Binary Serialization
-- [ ] Implement `serializeNbt(data: NbtData, format)` to produce real binary NBT
-- [ ] Write tag type → byte encoding for all 13 tag types (END, BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BYTE_ARRAY, STRING, LIST, COMPOUND, INT_ARRAY, LONG_ARRAY)
-- [ ] Handle big-endian and little-endian output
-- [ ] Handle gzip recompression when original was compressed
-- [ ] Test: parse Minecraft `.nbt` → modify → serialize → compare with original structure
-- [ ] Test: parse Bedrock (little-endian) → serialize → verify endianness
+- [x] Implement `serializeNbt(data: NbtData, format)` to produce real binary NBT
+- [x] Write tag type → byte encoding for all 13 tag types (END, BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BYTE_ARRAY, STRING, LIST, COMPOUND, INT_ARRAY, LONG_ARRAY)
+- [x] Handle big-endian and little-endian output
+- [x] Handle gzip recompression when original was compressed
+- [x] Test: parse Minecraft `.nbt` → modify → serialize → compare with original structure
+- [x] Test: parse Bedrock (little-endian) → serialize → verify endianness
 - **Dependency:** 1.1 (download path must call this)
 - **Files:** `src/client/parsers/nbt.ts` (serializeNbt function)
+- **Notes:** Replaced JSON fallback with full binary serialization. Added `serializeTag()`, `serializeTagPayload()`, `serializeListElement()` helper functions. All 13 tag types supported. Big/little endian handled via DataView.
 
 ### 2.2 NBT Offset Tracking (`advanceOffset`)
-- [ ] Replace placeholder `advanceOffset()` with real byte-counting logic
-- [ ] Each tag type consumes a known number of bytes — implement a switch that returns exact size
-- [ ] For LIST and COMPOUND, recursively calculate child sizes
-- [ ] Alternative approach: refactor `parseNbt` to return `{ value, bytesRead }` tuples instead of relying on offset mutation
-- [ ] Test with deeply nested NBT compounds (10+ levels)
-- [ ] Test with large lists (1000+ items)
+- [x] Replace placeholder `advanceOffset()` with real byte-counting logic
+- [x] Each tag type consumes a known number of bytes — implement a switch that returns exact size
+- [x] For LIST and COMPOUND, recursively calculate child sizes
+- [x] Alternative approach: refactor `parseNbt` to return `{ value, bytesRead }` tuples instead of relying on offset mutation
+- [x] Test with deeply nested NBT compounds (10+ levels)
+- [x] Test with large lists (1000+ items)
 - **Dependency:** None (internal parser fix)
 - **Files:** `src/client/parsers/nbt.ts`
+- **Notes:** Eliminated `advanceOffset()` entirely. Refactored `parseTagPayload()`, `parseList()`, `parseCompound()` to return `{ value, bytesRead }` tuples. Offset tracking is now correct by construction. All compound/array tests pass.
 
 ### 2.3 GVAS Full Property Parsing
-- [ ] Implement proper `FName` table reading (string table at start of file)
-- [ ] Parse struct types: Vector, Rotator, Transform, Guid, LinearColor, etc.
-- [ ] Parse array properties with proper element type dispatch
-- [ ] Parse map properties (key-value pair serialization)
-- [ ] Parse set properties
-- [ ] Handle optional property flags and array index tracking
-- [ ] Update `decodeValue()` to dispatch to type-specific parsers instead of returning raw bytes
+- [x] Implement proper `FName` table reading (string table at start of file)
+- [x] Parse struct types: Vector, Rotator, Transform, Guid, LinearColor, etc.
+- [x] Parse array properties with proper element type dispatch
+- [x] Parse map properties (key-value pair serialization)
+- [x] Parse set properties
+- [x] Handle optional property flags and array index tracking
+- [x] Update `decodeValue()` to dispatch to type-specific parsers instead of returning raw bytes
 - [ ] Update `serialize()` to produce UE-compatible binary output
 - [ ] Test with a real Palworld or UE save file
 - **Dependency:** 1.1
 - **Files:** `src/client/parsers/gvas.ts`
+- **Notes:** Refactored with `{ value, bytesRead }` tuples for correct offset tracking. Added full type dispatch for Int/Int64/Float/Double/Bool/Byte/Name/Str/Text properties. Implemented ArrayProperty, StructProperty, MapProperty, and SetProperty parsing with element type dispatch. Serialize still uses simplified format (marked as remaining).
 
 ### 2.4 Binary Plist Support
-- [ ] The `plist` npm package is already in `package.json` but not used in browser build
-- [ ] Determine if `plist` can be bundled with esbuild for browser use (it's Node-oriented)
-- [ ] If not, find or implement a browser-compatible binary plist parser (e.g., `bplist-parser` or custom)
-- [ ] Add binary plist detection: check for `bplist00` magic bytes
-- [ ] Implement `parseBinaryPlist(bytes: Uint8Array)` → `UnityParseResult`
+- [x] The `plist` npm package is already in `package.json` but not used in browser build
+- [x] Determine if `plist` can be bundled with esbuild for browser use (it's Node-oriented)
+- [x] If not, find or implement a browser-compatible binary plist parser (e.g., `bplist-parser` or custom)
+- [x] Add binary plist detection: check for `bplist00` magic bytes
+- [x] Implement `parseBinaryPlist(bytes: Uint8Array)` → `UnityParseResult`
 - [ ] Implement `serializeBinaryPlist(data)` → `ArrayBuffer`
-- [ ] Update Unity parser to auto-detect XML vs binary plist
+- [x] Update Unity parser to auto-detect XML vs binary plist
 - **Dependency:** Research needed on plist browser compatibility
 - **Files:** `src/client/parsers/unity.ts`, possibly new `plist-browser.ts`
+- **Notes:** Implemented custom binary plist parser from scratch (bplist00 spec). Supports all types: null, bool, int, real, ASCII/UTF-16 strings, data, arrays, dictionaries, UID. Auto-detects binary vs XML by magic bytes. Serialization not yet implemented.
 
 ---
 

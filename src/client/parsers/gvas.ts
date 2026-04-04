@@ -267,17 +267,18 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasData> {
         : undefined;
     if (packageEnd !== -1) offset = packageEnd + 1;
 
-    // Parse properties
+    // Parse properties using proper offset tracking
     const properties: Record<string, GvasProperty> = {};
     let propertyCount = 0;
 
     try {
       while (offset < bytes.byteLength) {
-        const prop = this.parseProperty(view, offset);
-        if (!prop) break;
+        const result = this.parseProperty(view, offset);
+        if (!result) break;
 
+        const { value: prop, bytesRead } = result;
         properties[prop.name] = prop;
-        offset = this.advanceToNextProperty(view, offset, prop);
+        offset += bytesRead;
         propertyCount++;
 
         // Safety limit on properties
@@ -293,14 +294,10 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasData> {
     return {
       header: {
         magic: "GVAS",
-
         version,
-
         package: packageName || undefined,
       },
-
       properties,
-
       unknownData:
         offset < bytes.byteLength
           ? bytes.slice(offset)
@@ -310,46 +307,52 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasData> {
 
   /**
    * Parse a single property from the GVAS stream
-   * This is a simplified parser - UE serialization is complex
+   * Returns { value, bytesRead } for proper offset tracking
    */
-  private parseProperty(view: DataView, offset: number): GvasProperty | null {
-    // Try to read property name length (varint or int32)
-    // This is simplified - actual UE uses FName and custom serialization
-    const nameLength = view.getUint32(offset, true); // Little-endian
-    if (nameLength === 0 || nameLength > 256) return null;
+  private parseProperty(
+    view: DataView,
+    offset: number,
+  ): { value: GvasProperty; bytesRead: number } | null {
+    let pos = offset;
 
-    offset += 4;
+    // Read property name length (int32 LE)
+    const nameLength = view.getUint32(pos, true);
+    if (nameLength === 0 || nameLength > 256) return null;
+    pos += 4;
 
     // Read name
-    const nameBytes = new Uint8Array(view.buffer, offset, nameLength);
+    const nameBytes = new Uint8Array(view.buffer, pos, nameLength);
     const name = safeDecode(nameBytes);
-    offset += nameLength;
+    pos += nameLength;
 
-    // Read type (simplified)
-    const typeLength = view.getUint32(offset, true);
+    // Read type length (int32 LE)
+    const typeLength = view.getUint32(pos, true);
     if (typeLength === 0 || typeLength > 128) return null;
-    offset += 4;
+    pos += 4;
 
-    const typeBytes = new Uint8Array(view.buffer, offset, typeLength);
+    // Read type
+    const typeBytes = new Uint8Array(view.buffer, pos, typeLength);
     const type = safeDecode(typeBytes);
-    offset += typeLength;
+    pos += typeLength;
 
-    // Read value (simplified - this is where it gets complex)
-    // UE uses type-specific serialization, we'll just capture raw bytes for now
-    const valueSize = view.getUint32(offset, true);
-    offset += 4;
+    // Read value size (int32 LE)
+    const valueSize = view.getUint32(pos, true);
+    pos += 4;
 
+    // Parse value based on type
+    let value: unknown;
     if (valueSize > 0) {
-      const valueBytes = new Uint8Array(view.buffer, offset, valueSize);
-      // For now, store as base64 or hex for unknown types
-      // Proper implementation would dispatch to type-specific parsers
-      const value = this.decodeValue(type, valueBytes, view, offset);
-      offset += valueSize;
-
-      return { name, type, value };
+      const valueBytes = new Uint8Array(view.buffer, pos, valueSize);
+      value = this.decodeValue(type, valueBytes, view, pos);
+      pos += valueSize;
+    } else {
+      value = null;
     }
 
-    return { name, type, value: null };
+    return {
+      value: { name, type, value },
+      bytesRead: pos - offset,
+    };
   }
 
   /**
@@ -361,68 +364,281 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasData> {
     view: DataView,
     offset: number,
   ): unknown {
-    // Basic type decoding - this is incomplete but covers common cases
     const typeLower = type.toLowerCase();
 
-    if (typeLower.includes("int") || typeLower.includes("int32")) {
+    // Primitive types
+    if (typeLower === "intproperty" || typeLower === "int32property") {
       return view.getInt32(offset, true);
     }
 
-    if (typeLower.includes("float")) {
+    if (typeLower === "int64property" || typeLower === "int64") {
+      const low = view.getUint32(offset, true);
+      const high = view.getUint32(offset + 4, true);
+      return (BigInt(high) << BigInt(32)) | BigInt(low);
+    }
+
+    if (typeLower === "floatproperty") {
       return view.getFloat32(offset, true);
     }
 
-    if (typeLower.includes("double")) {
+    if (typeLower === "doubleproperty") {
       return view.getFloat64(offset, true);
     }
 
-    if (typeLower.includes("bool")) {
+    if (typeLower === "boolproperty") {
       return view.getUint8(offset) !== 0;
     }
 
-    if (typeLower.includes("string") || typeLower.includes("text")) {
-      // UE strings are typically length-prefixed
-      const length = view.getUint32(offset, true);
-      if (length > 0 && length < 10000) {
-        return safeDecode(bytes.slice(4, 4 + length));
+    if (typeLower === "byteproperty") {
+      return view.getUint8(offset);
+    }
+
+    if (typeLower === "nameproperty") {
+      // FName: index (int32) + number (int32)
+      const index = view.getInt32(offset, true);
+      const number = view.getInt32(offset + 4, true);
+      return { _fNameIndex: index, _fNameNumber: number };
+    }
+
+    // String types
+    if (typeLower === "strproperty" || typeLower === "textproperty") {
+      const length = view.getInt32(offset, true);
+      if (length > 0 && length < 100000) {
+        // UE strings may have encoding flag
+        const hasEncoding = length < 0;
+        const strOffset = hasEncoding ? offset + 5 : offset + 4;
+        const strBytes = new Uint8Array(
+          view.buffer,
+          strOffset,
+          Math.abs(length) - (hasEncoding ? 1 : 0),
+        );
+        return safeDecode(strBytes);
       }
-      return safeDecode(bytes);
+      return "";
     }
 
-    if (typeLower.includes("array") || typeLower.includes("list")) {
-      // Return raw bytes for array types - would need proper parsing
-      return {
-        _type: "array",
-        _raw: Array.from(bytes),
-        _note: "Array data requires full UE serialization implementation",
-      };
+    // Array types
+    if (typeLower === "arrayproperty") {
+      return this.parseArrayProperty(view, offset, bytes.byteLength);
     }
 
-    // For unknown/complex types, return metadata
+    // Struct types
+    if (typeLower === "structproperty") {
+      return this.parseStructProperty(view, offset, bytes.byteLength);
+    }
+
+    // Map types
+    if (typeLower === "mapproperty") {
+      return this.parseMapProperty(view, offset, bytes.byteLength);
+    }
+
+    // Set types
+    if (typeLower === "setproperty") {
+      return this.parseSetProperty(view, offset, bytes.byteLength);
+    }
+
+    // Fallback: return raw bytes with metadata
     return {
       _type: "unknown",
       _rawSize: bytes.byteLength,
       _rawPreview: Array.from(bytes.slice(0, Math.min(32, bytes.byteLength))),
-      _note: `Type '${type}' requires full UE serialization support`,
+      _note: `Type '${type}' requires specialized parser`,
     };
   }
 
   /**
-   * Calculate offset to next property
-   * In a full implementation, this would use the value size we just read
+   * Parse array property
    */
-
-  private advanceToNextProperty(
-    _view: DataView,
-
+  private parseArrayProperty(
+    view: DataView,
     offset: number,
+    size: number,
+  ): unknown {
+    // Array header: element type name length + element type name + element count
+    let pos = offset;
+    const elemTypeNameLen = view.getUint32(pos, true);
+    pos += 4;
+    const elemTypeName = safeDecode(
+      new Uint8Array(view.buffer, pos, elemTypeNameLen),
+    );
+    pos += elemTypeNameLen;
 
-    _prop: GvasProperty,
-  ): number {
-    (void _view, _prop); // Mark as intentionally unused
+    const elementCount = view.getInt32(pos, true);
+    pos += 4;
 
-    return offset;
+    const elements: unknown[] = [];
+    const elemSize = Math.max(
+      0,
+      (size - (pos - offset)) / Math.max(1, elementCount),
+    );
+
+    for (let i = 0; i < elementCount; i++) {
+      const elemOffset = pos + Math.floor(i * elemSize);
+      elements.push(this.decodeArrayElement(elemTypeName, view, elemOffset));
+    }
+
+    return { _type: "array", _elementType: elemTypeName, values: elements };
   }
+
+  /**
+   * Decode a single array element
+   */
+  private decodeArrayElement(
+    typeName: string,
+    view: DataView,
+    offset: number,
+  ): unknown {
+    const typeLower = typeName.toLowerCase();
+    if (typeLower.includes("int") || typeLower === "intproperty") {
+      return view.getInt32(offset, true);
+    }
+    if (typeLower.includes("float")) {
+      return view.getFloat32(offset, true);
+    }
+    if (typeLower.includes("bool")) {
+      return view.getUint8(offset) !== 0;
+    }
+    if (typeLower.includes("byte")) {
+      return view.getUint8(offset);
+    }
+    if (typeLower.includes("name")) {
+      const index = view.getInt32(offset, true);
+      const number = view.getInt32(offset + 4, true);
+      return { _fNameIndex: index, _fNameNumber: number };
+    }
+    // For complex types, return raw preview
+    return {
+      _type: "array_element",
+      _elementType: typeName,
+      _raw: Array.from(
+        new Uint8Array(
+          view.buffer,
+          offset,
+          Math.min(16, view.byteLength - offset),
+        ),
+      ),
+    };
+  }
+
+  /**
+   * Parse struct property
+   */
+  private parseStructProperty(
+    view: DataView,
+    offset: number,
+    size: number,
+  ): unknown {
+    // Struct header: struct type name + GUID (16 bytes) + data
+    let pos = offset;
+    const structTypeNameLen = view.getUint32(pos, true);
+    pos += 4;
+    const structTypeName = safeDecode(
+      new Uint8Array(view.buffer, pos, structTypeNameLen),
+    );
+    pos += structTypeNameLen;
+
+    // Skip GUID (16 bytes)
+    pos += 16;
+
+    // Remaining bytes are struct data
+    const dataBytes = new Uint8Array(view.buffer, pos, size - (pos - offset));
+
+    return {
+      _type: "struct",
+      _structType: structTypeName,
+      _rawSize: dataBytes.byteLength,
+      _rawPreview: Array.from(
+        dataBytes.slice(0, Math.min(32, dataBytes.byteLength)),
+      ),
+    };
+  }
+
+  /**
+   * Parse map property
+   */
+  private parseMapProperty(
+    view: DataView,
+    offset: number,
+    size: number,
+  ): unknown {
+    let pos = offset;
+    const keyTypeNameLen = view.getUint32(pos, true);
+    pos += 4;
+    const keyTypeName = safeDecode(
+      new Uint8Array(view.buffer, pos, keyTypeNameLen),
+    );
+    pos += keyTypeNameLen;
+
+    const valueTypeNameLen = view.getUint32(pos, true);
+    pos += 4;
+    const valueTypeName = safeDecode(
+      new Uint8Array(view.buffer, pos, valueTypeNameLen),
+    );
+    pos += valueTypeNameLen;
+
+    const elementCount = view.getInt32(pos, true);
+    pos += 4;
+
+    const entries: Array<{ key: unknown; value: unknown }> = [];
+    const elemSize = Math.max(
+      0,
+      (size - (pos - offset)) / Math.max(1, elementCount),
+    );
+
+    for (let i = 0; i < elementCount; i++) {
+      const elemOffset = pos + Math.floor(i * elemSize);
+      entries.push({
+        key: this.decodeArrayElement(keyTypeName, view, elemOffset),
+        value: this.decodeArrayElement(
+          valueTypeName,
+          view,
+          elemOffset + Math.floor(elemSize / 2),
+        ),
+      });
+    }
+
+    return {
+      _type: "map",
+      _keyType: keyTypeName,
+      _valueType: valueTypeName,
+      entries,
+    };
+  }
+
+  /**
+   * Parse set property
+   */
+  private parseSetProperty(
+    view: DataView,
+    offset: number,
+    size: number,
+  ): unknown {
+    let pos = offset;
+    const elemTypeNameLen = view.getUint32(pos, true);
+    pos += 4;
+    const elemTypeName = safeDecode(
+      new Uint8Array(view.buffer, pos, elemTypeNameLen),
+    );
+    pos += elemTypeNameLen;
+
+    const elementCount = view.getInt32(pos, true);
+    pos += 4;
+
+    const elements: unknown[] = [];
+    const elemSize = Math.max(
+      0,
+      (size - (pos - offset)) / Math.max(1, elementCount),
+    );
+
+    for (let i = 0; i < elementCount; i++) {
+      const elemOffset = pos + Math.floor(i * elemSize);
+      elements.push(this.decodeArrayElement(elemTypeName, view, elemOffset));
+    }
+
+    return { _type: "set", _elementType: elemTypeName, values: elements };
+  }
+
+  // advanceToNextProperty removed - offset tracking is now handled by bytesRead return values
 
   /**
    * Determine round-trip support based on compression and file structure

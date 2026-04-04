@@ -142,18 +142,283 @@ function inferUnityType(value: unknown): UnityValueType {
 
 /**
  * Parse binary or XML plist format
- * Uses the browser's built-in plist parser if available (from plist npm package)
+ * Auto-detects format based on content
  */
-async function parseUnityPlist(text: string): Promise<UnityParseResult> {
-  // Try to use plist library if available
-  try {
-    // Dynamic import of plist library (would need to be added as dependency)
-    // For now, we'll implement a basic XML plist parser
-    return parseXmlPlist(text);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to parse PLIST: ${message}`);
+async function parseUnityPlist(
+  input: ArrayBuffer | string,
+): Promise<UnityParseResult> {
+  // Check if input is binary (ArrayBuffer)
+  if (input instanceof ArrayBuffer) {
+    const bytes = new Uint8Array(input);
+    // Binary plist starts with "bplist00"
+    if (
+      bytes.length >= 8 &&
+      bytes[0] === 0x62 &&
+      bytes[1] === 0x70 &&
+      bytes[2] === 0x6c &&
+      bytes[3] === 0x69 &&
+      bytes[4] === 0x73 &&
+      bytes[5] === 0x74 &&
+      bytes[6] === 0x30 &&
+      bytes[7] === 0x30
+    ) {
+      return parseBinaryPlist(bytes);
+    }
   }
+
+  // Fall back to XML parsing
+  const text =
+    typeof input === "string"
+      ? input
+      : new TextDecoder().decode(input as ArrayBuffer);
+  return parseXmlPlist(text);
+}
+
+/**
+ * Parse Apple binary plist format (bplist00)
+ * Based on the Apple binary plist specification
+ */
+function parseBinaryPlist(bytes: Uint8Array): UnityParseResult {
+  const result: Record<string, unknown> = {};
+  const keyOrder: string[] = [];
+
+  // Read trailer (last 32 bytes)
+  if (bytes.length < 32) {
+    throw new Error("Binary plist too small to contain trailer");
+  }
+
+  const trailerOffset = bytes.length - 32;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+  const offsetSize = view.getUint8(trailerOffset + 6);
+  const objectRefSize = view.getUint8(trailerOffset + 7);
+  const numObjects = view.getUint32(trailerOffset + 24, false);
+  const topObjectRef = readUIntValue(
+    view,
+    trailerOffset + 28,
+    objectRefSize,
+    false,
+  );
+  const offsetTableOffset = readUIntValue(
+    view,
+    trailerOffset + 16,
+    offsetSize,
+    false,
+  );
+
+  // Read offset table
+  const offsets: number[] = [];
+  for (let i = 0; i < numObjects; i++) {
+    offsets.push(
+      readUIntValue(
+        view,
+        offsetTableOffset + i * offsetSize,
+        offsetSize,
+        false,
+      ),
+    );
+  }
+
+  // Parse objects
+  const objectCache: Map<number, unknown> = new Map();
+
+  function parseObject(ref: number): unknown {
+    if (objectCache.has(ref)) {
+      return objectCache.get(ref);
+    }
+
+    const offset = offsets[ref];
+    if (offset === undefined) return null;
+    let pos: number = offset;
+    const marker = view.getUint8(pos);
+    pos += 1;
+
+    const type = (marker >> 4) & 0x0f;
+    const info = marker & 0x0f;
+
+    let value: unknown;
+
+    switch (type) {
+      case 0x0: // Null/bool/int
+        if (info === 0x0) {
+          value = null;
+        } else if (info === 0x8) {
+          value = false;
+        } else if (info === 0x9) {
+          value = true;
+        } else if (info === 0xf) {
+          value = null; // Fill byte
+        } else {
+          value = null;
+        }
+        break;
+
+      case 0x1: // Integer
+        const intBytes = 1 << info;
+        let intVal = 0n;
+        for (let i = 0; i < intBytes; i++) {
+          intVal = (intVal << 8n) | BigInt(view.getUint8(pos + i));
+        }
+        value =
+          intVal <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(intVal) : intVal;
+        break;
+
+      case 0x2: // Real
+        if (info === 2) {
+          value = view.getFloat32(pos, false);
+        } else if (info === 3) {
+          value = view.getFloat64(pos, false);
+        }
+        break;
+
+      case 0x3: // Date (not commonly used in Unity plists)
+        value = null;
+        break;
+
+      case 0x4: {
+        // Data
+        const dataLen =
+          info === 0xf ? readUIntValue(view, pos, 1, false) : info;
+        const dataStart = info === 0xf ? pos + 1 : pos;
+        value = Array.from(bytes.slice(dataStart, dataStart + dataLen));
+        break;
+      }
+
+      case 0x5: {
+        // ASCII string
+        const asciiLen =
+          info === 0xf ? readUIntValue(view, pos, 1, false) : info;
+        const asciiStart = info === 0xf ? pos + 1 : pos;
+        value = String.fromCharCode(
+          ...bytes.slice(asciiStart, asciiStart + asciiLen),
+        );
+        break;
+      }
+
+      case 0x6: {
+        // UTF-16 string
+        const utf16Len =
+          info === 0xf ? readUIntValue(view, pos, 1, false) : info;
+        const utf16Start = info === 0xf ? pos + 1 : pos;
+        const utf16Bytes = bytes.slice(utf16Start, utf16Start + utf16Len * 2);
+        value = new TextDecoder("utf-16be").decode(utf16Bytes);
+        break;
+      }
+
+      case 0x8: {
+        // UID (usually for keyed archiver, treat as number)
+        const uidBytes = info + 1;
+        let uidVal = 0;
+        for (let i = 0; i < uidBytes; i++) {
+          uidVal = (uidVal << 8) | view.getUint8(pos + i);
+        }
+        value = uidVal;
+        break;
+      }
+
+      case 0xa: {
+        // Array
+        const arrayLen =
+          info === 0xf ? readUIntValue(view, pos, 1, false) : info;
+        const arrayStart = info === 0xf ? pos + 1 : pos;
+        const arrayItems: unknown[] = [];
+        for (let i = 0; i < arrayLen; i++) {
+          const itemRef = readUIntValue(
+            view,
+            arrayStart + i * objectRefSize,
+            objectRefSize,
+            false,
+          );
+          arrayItems.push(parseObject(itemRef));
+        }
+        value = arrayItems;
+        break;
+      }
+
+      case 0xd: {
+        // Dictionary
+        const dictLen =
+          info === 0xf ? readUIntValue(view, pos, 1, false) : info;
+        const dictStart = info === 0xf ? pos + 1 : pos;
+        const dictObj: Record<string, unknown> = {};
+        for (let i = 0; i < dictLen; i++) {
+          const keyRef = readUIntValue(
+            view,
+            dictStart + i * objectRefSize,
+            objectRefSize,
+            false,
+          );
+          const valRef = readUIntValue(
+            view,
+            dictStart + (dictLen + i) * objectRefSize,
+            objectRefSize,
+            false,
+          );
+          const key = parseObject(keyRef) as string;
+          dictObj[key] = parseObject(valRef);
+        }
+        value = dictObj;
+        break;
+      }
+
+      default:
+        value = null;
+        break;
+    }
+
+    objectCache.set(ref, value);
+    return value;
+  }
+
+  // Parse top-level object (should be a dictionary)
+  const topObj = parseObject(topObjectRef);
+
+  if (typeof topObj === "object" && topObj !== null && !Array.isArray(topObj)) {
+    const dict = topObj as Record<string, unknown>;
+    for (const [key, val] of Object.entries(dict)) {
+      result[key] = val;
+      keyOrder.push(key);
+    }
+  }
+
+  if (keyOrder.length === 0) {
+    throw new Error("Invalid binary plist: no key-value pairs found");
+  }
+
+  return {
+    data: result,
+    meta: {
+      inputFormat: "unity-plist",
+      keyOrder,
+      valueTypes: Object.fromEntries(
+        Object.entries(result).map(([key, val]) => [key, inferUnityType(val)]),
+      ),
+    },
+  };
+}
+
+/**
+ * Read an unsigned integer value of arbitrary byte size
+ */
+function readUIntValue(
+  view: DataView,
+  offset: number,
+  byteSize: number,
+  littleEndian: boolean,
+): number {
+  if (byteSize === 1) return view.getUint8(offset);
+  if (byteSize === 2) return view.getUint16(offset, littleEndian);
+  if (byteSize === 4) return view.getUint32(offset, littleEndian);
+  if (byteSize === 8) {
+    // For 8-byte values, use BigInt then convert if safe
+    const high = view.getUint32(offset, littleEndian);
+    const low = view.getUint32(offset + 4, littleEndian);
+    const val = littleEndian
+      ? BigInt(low) | (BigInt(high) << 32n)
+      : (BigInt(high) << 32n) | BigInt(low);
+    return val <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(val) : Number(val);
+  }
+  return 0;
 }
 
 /**
@@ -241,19 +506,20 @@ export class UnityParser extends BaseParser<ArrayBuffer, UnityParseResult> {
         // Try binary plist detection
         const bytes = new Uint8Array(input);
         if (
-          bytes.length >= 6 &&
+          bytes.length >= 8 &&
           bytes[0] === 0x62 &&
           bytes[1] === 0x70 &&
           bytes[2] === 0x6c &&
           bytes[3] === 0x69 &&
           bytes[4] === 0x73 &&
-          bytes[5] === 0x74
+          bytes[5] === 0x74 &&
+          bytes[6] === 0x30 &&
+          bytes[7] === 0x30
         ) {
-          throw new Error(
-            "Binary plist format is not supported. Please convert to XML plist.",
-          );
+          data = await parseUnityPlist(input);
+        } else {
+          throw new Error("Unrecognized Unity PlayerPrefs format.");
         }
-        throw new Error("Unrecognized Unity PlayerPrefs format.");
       }
 
       // duration tracking removed - was unused

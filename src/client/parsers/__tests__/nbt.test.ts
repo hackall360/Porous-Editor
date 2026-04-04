@@ -818,7 +818,7 @@ describe("NBTParser", () => {
       expect(result.byteLength).toBeGreaterThan(0);
     });
 
-    it("should produce valid output for compound data", () => {
+    it("should produce valid binary NBT for compound data", () => {
       const data: NbtData = {
         type: "compound",
         name: "root",
@@ -826,10 +826,15 @@ describe("NBTParser", () => {
       };
 
       const result = serializeNbt(data);
-      const text = new TextDecoder().decode(result);
+      const bytes = new Uint8Array(result);
 
-      // Current implementation outputs JSON as fallback
-      expect(text).toContain("compound");
+      // Should start with TAG_Compound (0x0a)
+      expect(bytes[0]).toBe(0x0a);
+      // Root name length should be 4 ("root")
+      expect(bytes[1]).toBe(0x00);
+      expect(bytes[2]).toBe(0x04);
+      // Should end with TAG_End (0x00)
+      expect(bytes[bytes.length - 1]).toBe(0x00);
     });
 
     it("should handle bigint values in serialization", () => {
@@ -840,10 +845,15 @@ describe("NBTParser", () => {
       };
 
       const result = serializeNbt(data);
-      const text = new TextDecoder().decode(result);
+      const bytes = new Uint8Array(result);
 
-      // BigInt should be converted to string in JSON
-      expect(text).toContain("9007199254740992");
+      // Should start with TAG_Long (0x04)
+      expect(bytes[0]).toBe(0x04);
+      // Name "big" length = 3
+      expect(bytes[1]).toBe(0x00);
+      expect(bytes[2]).toBe(0x03);
+      // Total size: 1 (tag) + 2 (name len) + 3 (name) + 8 (long value) = 14
+      expect(result.byteLength).toBe(14);
     });
   });
 });
