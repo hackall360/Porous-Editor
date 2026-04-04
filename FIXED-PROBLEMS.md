@@ -11,6 +11,12 @@ A permanent log of all issues that have been resolved in this project. Each entr
 
 ---
 
+### Complete NBT Parser Rewrite (Corrupted File)
+
+1. The issue was hundreds of TypeScript syntax errors, type mismatches, and structural corruption across the entire `nbt.ts` file, making it completely non-functional.
+2. It happened because the file had accumulated fragments of multiple failed refactoring attempts, with comments, code, and syntax errors intermingled throughout, resulting in an unparseable source file.
+3. Fixed by completely rewriting `nbt.ts` from scratch with a clean architecture: `NbtReader` class for binary reading, `NbtWriter` class for binary writing, proper discriminated union types for all 13 NBT tag types, full round-trip serialization support, gzip decompression via `pako` or `DecompressionStream`, and proper error handling with graceful fallbacks.
+
 
 
 ### TypeScript Compilation Errors Across Parsers

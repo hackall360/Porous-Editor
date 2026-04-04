@@ -480,6 +480,222 @@ function parseXmlPlist(text: string): UnityParseResult {
   };
 }
 
+// ====================== Binary Plist Serialization ======================
+
+/**
+ * Serialize UnityParseResult to bplist00 binary format
+ * Produces a valid Apple binary property list that mirrors parseBinaryPlist
+ */
+export function serializeBinaryPlist(data: UnityParseResult): ArrayBuffer {
+  const { data: payload } = data;
+  const encoder = new TextEncoder();
+
+  // Object table: each object gets an index
+  const objects: Uint8Array[] = [];
+  const objectOffsets: number[] = [];
+
+  // Track string objects to deduplicate keys
+  const stringCache = new Map<string, number>();
+
+  function addObject(bytes: Uint8Array): number {
+    const idx = objects.length;
+    objects.push(bytes);
+    return idx;
+  }
+
+  function getStringObjectIndex(str: string): number {
+    if (stringCache.has(str)) {
+      return stringCache.get(str)!;
+    }
+    // UTF-16 string: 0x6n where n=length, or 0x6f + length byte for extended
+    const utf16Bytes = new Uint8Array(
+      new TextEncoder().encode(str).byteLength * 2,
+    );
+    // Encode as UTF-16BE
+    const view = new DataView(utf16Bytes.buffer);
+    for (let i = 0; i < str.length; i++) {
+      view.setUint16(i * 2, str.charCodeAt(i), false);
+    }
+    const len = str.length;
+    let header: Uint8Array;
+    if (len < 0xf) {
+      header = new Uint8Array([0x60 | len]);
+    } else {
+      header = new Uint8Array([0x6f, len]);
+    }
+    const objBytes = new Uint8Array(header.byteLength + utf16Bytes.byteLength);
+    objBytes.set(header, 0);
+    objBytes.set(utf16Bytes, header.byteLength);
+    const idx = addObject(objBytes);
+    stringCache.set(str, idx);
+    return idx;
+  }
+
+  function getValueObjectIndex(value: unknown): number {
+    if (value === null || value === undefined) {
+      return addObject(new Uint8Array([0x00]));
+    }
+    if (typeof value === "boolean") {
+      return addObject(new Uint8Array([value ? 0x09 : 0x08]));
+    }
+    if (typeof value === "number") {
+      if (Number.isInteger(value)) {
+        const num = value;
+        if (num >= 0 && num <= 0xff) {
+          return addObject(new Uint8Array([0x10, num]));
+        } else if (num >= -0x80 && num <= 0x7fff) {
+          const buf = new Uint8Array(3);
+          buf[0] = 0x11;
+          buf[1] = (num >> 8) & 0xff;
+          buf[2] = num & 0xff;
+          return addObject(buf);
+        } else if (num >= -0x8000 && num <= 0xffffffff) {
+          const buf = new Uint8Array(5);
+          buf[0] = 0x12;
+          const v = new DataView(buf.buffer);
+          v.setUint32(1, num >>> 0, false);
+          return addObject(buf);
+        } else {
+          const buf = new Uint8Array(9);
+          buf[0] = 0x13;
+          const v = new DataView(buf.buffer);
+          // Write as 64-bit big-endian
+          const high = Math.floor(num / 0x100000000);
+          const low = num >>> 0;
+          v.setUint32(1, high >>> 0, false);
+          v.setUint32(5, low, false);
+          return addObject(buf);
+        }
+      } else {
+        // Float64
+        const buf = new Uint8Array(9);
+        buf[0] = 0x23;
+        new DataView(buf.buffer).setFloat64(1, value, false);
+        return addObject(buf);
+      }
+    }
+    if (typeof value === "string") {
+      return getStringObjectIndex(value);
+    }
+    if (Array.isArray(value)) {
+      const len = value.length;
+      const itemRefs = value.map((v) => getValueObjectIndex(v));
+      const refSize = Math.max(1, Math.ceil(Math.log2(objects.length + 1) / 8));
+      let header: Uint8Array;
+      if (len < 0xf) {
+        header = new Uint8Array([0xa0 | len]);
+      } else {
+        header = new Uint8Array([0xaf, len]);
+      }
+      const refs = new Uint8Array(itemRefs.length * refSize);
+      const refView = new DataView(refs.buffer);
+      for (let i = 0; i < itemRefs.length; i++) {
+        refView.setUint32(i * refSize, itemRefs[i]!, false);
+      }
+      const objBytes = new Uint8Array(header.byteLength + refs.byteLength);
+      objBytes.set(header, 0);
+      objBytes.set(refs, header.byteLength);
+      return addObject(objBytes);
+    }
+    if (typeof value === "object") {
+      const entries = Object.entries(value as Record<string, unknown>);
+      const len = entries.length;
+      const keyRefs = entries.map(([k]) => getStringObjectIndex(k));
+      const valRefs = entries.map(([, v]) => getValueObjectIndex(v));
+      const refSize = Math.max(1, Math.ceil(Math.log2(objects.length + 1) / 8));
+      let header: Uint8Array;
+      if (len < 0xf) {
+        header = new Uint8Array([0xd0 | len]);
+      } else {
+        header = new Uint8Array([0xdf, len]);
+      }
+      const refs = new Uint8Array(entries.length * 2 * refSize);
+      const refView = new DataView(refs.buffer);
+      for (let i = 0; i < entries.length; i++) {
+        refView.setUint32(i * refSize, keyRefs[i]!, false);
+        refView.setUint32((entries.length + i) * refSize, valRefs[i]!, false);
+      }
+      const objBytes = new Uint8Array(header.byteLength + refs.byteLength);
+      objBytes.set(header, 0);
+      objBytes.set(refs, header.byteLength);
+      return addObject(objBytes);
+    }
+    // Fallback: null
+    return addObject(new Uint8Array([0x00]));
+  }
+
+  // Build the top-level dictionary
+  const topDictRef = getValueObjectIndex(payload);
+
+  // Calculate offsets
+  let currentOffset = 0;
+  for (const obj of objects) {
+    objectOffsets.push(currentOffset);
+    currentOffset += obj.byteLength;
+  }
+
+  const offsetTableOffset = currentOffset;
+  const offsetSize = Math.max(
+    1,
+    Math.ceil(Math.log2(offsetTableOffset + 1) / 8),
+  );
+  const objectRefSize = Math.max(
+    1,
+    Math.ceil(Math.log2(objects.length + 1) / 8),
+  );
+  const numObjects = objects.length;
+
+  // Build offset table
+  const offsetTable = new Uint8Array(numObjects * offsetSize);
+  const offsetView = new DataView(offsetTable.buffer);
+  for (let i = 0; i < numObjects; i++) {
+    offsetView.setUint32(i * offsetSize, objectOffsets[i]!, false);
+  }
+
+  // Build trailer (32 bytes)
+  const trailer = new Uint8Array(32);
+  const trailerView = new DataView(trailer.buffer);
+  // unused(6) = 0
+  trailer[6] = offsetSize;
+  trailer[7] = objectRefSize;
+  // numObjects (8 bytes, big-endian)
+  trailerView.setUint32(24, 0, false); // high 4 bytes
+  trailerView.setUint32(28, numObjects, false); // low 4 bytes
+  // topObjectRef (8 bytes, big-endian)
+  trailerView.setUint32(16, 0, false); // high 4 bytes
+  trailerView.setUint32(20, topDictRef, false); // low 4 bytes
+  // offsetTableOffset (8 bytes, big-endian)
+  trailerView.setUint32(8, 0, false); // high 4 bytes
+  trailerView.setUint32(12, offsetTableOffset, false); // low 4 bytes
+  // unused(4) at end = 0
+
+  // Combine: header + objects + offset table + trailer
+  const header = encoder.encode("bplist00");
+  const totalSize =
+    header.byteLength +
+    objects.reduce((s, o) => s + o.byteLength, 0) +
+    offsetTable.byteLength +
+    trailer.byteLength;
+
+  const result = new Uint8Array(totalSize);
+  let pos = 0;
+
+  result.set(header, pos);
+  pos += header.byteLength;
+
+  for (const obj of objects) {
+    result.set(obj, pos);
+    pos += obj.byteLength;
+  }
+
+  result.set(offsetTable, pos);
+  pos += offsetTable.byteLength;
+
+  result.set(trailer, pos);
+
+  return result.buffer;
+}
+
 // ====================== Unity Parser Implementation ======================
 
 export class UnityParser extends BaseParser<ArrayBuffer, UnityParseResult> {

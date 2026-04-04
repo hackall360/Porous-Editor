@@ -674,72 +674,60 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasData> {
    */
   serialize(data: GvasData): ArrayBuffer {
     const { header, properties } = data;
+    const encoder = new TextEncoder();
 
-    // Build header
-    const headerParts: Uint8Array[] = [];
-    headerParts.push(new TextEncoder().encode(header.magic || "GVAS"));
-    headerParts.push(new Uint8Array([0])); // Null terminator after magic
+    // Build header bytes (matches parseGvas format)
+    const headerBytes: Uint8Array[] = [];
 
+    // Magic (4 bytes)
+    headerBytes.push(encoder.encode(header.magic || "GVAS"));
+
+    // Version (null-terminated string)
     if (header.version) {
-      headerParts.push(new TextEncoder().encode(header.version));
-      headerParts.push(new Uint8Array([0]));
+      headerBytes.push(encoder.encode(header.version));
     }
+    headerBytes.push(new Uint8Array([0]));
 
+    // Package (null-terminated string, optional)
     if (header.package) {
-      headerParts.push(new TextEncoder().encode(header.package));
-      headerParts.push(new Uint8Array([0]));
+      headerBytes.push(encoder.encode(header.package));
+    }
+    headerBytes.push(new Uint8Array([0]));
+
+    // Build property bytes (matches parseProperty format)
+    const propBytes: Uint8Array[] = [];
+    for (const prop of Object.values(properties)) {
+      const nameBytes = encoder.encode(prop.name);
+      const typeBytes = encoder.encode(prop.type);
+
+      // Name length (int32 LE) + name bytes
+      const nameLenBuf = new Uint8Array(4);
+      new DataView(nameLenBuf.buffer).setUint32(0, nameBytes.byteLength, true);
+      propBytes.push(nameLenBuf);
+      propBytes.push(nameBytes);
+
+      // Type length (int32 LE) + type bytes
+      const typeLenBuf = new Uint8Array(4);
+      new DataView(typeLenBuf.buffer).setUint32(0, typeBytes.byteLength, true);
+      propBytes.push(typeLenBuf);
+      propBytes.push(typeBytes);
+
+      // Encode value based on type
+      const valueBytes = this.encodeValue(prop.type, prop.value);
+
+      // Value size (int32 LE) + value bytes
+      const valueSizeBuf = new Uint8Array(4);
+      new DataView(valueSizeBuf.buffer).setUint32(
+        0,
+        valueBytes.byteLength,
+        true,
+      );
+      propBytes.push(valueSizeBuf);
+      propBytes.push(valueBytes);
     }
 
-    // Build properties (simplified - not fully compatible with UE)
-    const propParts: Uint8Array[] = [];
-    for (const [name, prop] of Object.entries(properties) as [
-      string,
-      GvasProperty,
-    ][]) {
-      const nameBytes = new TextEncoder().encode(name);
-      const typeBytes = new TextEncoder().encode(prop.type);
-
-      // Name length + name
-      propParts.push(new Uint8Array(new ArrayBuffer(4)));
-      const nameView = new DataView(propParts[propParts.length - 1]!.buffer);
-      nameView.setUint32(0, nameBytes.byteLength, true);
-      propParts.push(nameBytes);
-
-      // Type length + type
-      propParts.push(new Uint8Array(new ArrayBuffer(4)));
-      const typeView = new DataView(propParts[propParts.length - 1]!.buffer);
-      typeView.setUint32(0, typeBytes.byteLength, true);
-      propParts.push(typeBytes);
-
-      // Value size + value (simplified)
-      let valueBytes: Uint8Array;
-      if (
-        typeof prop.value === "object" &&
-        prop.value !== null &&
-        "_raw" in prop.value
-      ) {
-        valueBytes = new Uint8Array((prop.value as { _raw: number[] })._raw);
-      } else if (typeof prop.value === "string") {
-        valueBytes = new TextEncoder().encode(prop.value as string);
-      } else if (typeof prop.value === "number") {
-        valueBytes = new Uint8Array(4);
-        new DataView(valueBytes.buffer).setFloat32(
-          0,
-          prop.value as number,
-          true,
-        );
-      } else {
-        valueBytes = new Uint8Array(0);
-      }
-
-      propParts.push(new Uint8Array(new ArrayBuffer(4)));
-      const valueView = new DataView(propParts[propParts.length - 1]!.buffer);
-      valueView.setUint32(0, valueBytes.byteLength, true);
-      propParts.push(valueBytes);
-    }
-
-    // Combine all parts
-    const allParts: Uint8Array[] = [...headerParts, ...propParts];
+    // Combine all parts into final buffer
+    const allParts = [...headerBytes, ...propBytes];
     const totalSize = allParts.reduce((sum, arr) => sum + arr.byteLength, 0);
     const result = new Uint8Array(totalSize);
 
@@ -750,6 +738,95 @@ export class GvasParser extends BaseParser<ArrayBuffer, GvasData> {
     }
 
     return result.buffer;
+  }
+
+  /**
+   * Encode a property value based on its UE type
+   * Mirrors decodeValue logic in reverse
+   */
+  private encodeValue(type: string, value: unknown): Uint8Array {
+    const typeLower = type.toLowerCase();
+
+    // Complex types with raw bytes - write them back directly
+    if (typeof value === "object" && value !== null && "_raw" in value) {
+      const raw = (value as { _raw: number[] | Uint8Array })._raw;
+      return new Uint8Array(raw);
+    }
+
+    // IntProperty / Int32Property (4 bytes LE)
+    if (typeLower === "intproperty" || typeLower === "int32property") {
+      const buf = new Uint8Array(4);
+      new DataView(buf.buffer).setInt32(0, value as number, true);
+      return buf;
+    }
+
+    // Int64Property (8 bytes LE)
+    if (typeLower === "int64property" || typeLower === "int64") {
+      const buf = new Uint8Array(8);
+      const view = new DataView(buf.buffer);
+      const bigVal =
+        typeof value === "bigint" ? value : BigInt(value as number | bigint);
+      view.setUint32(0, Number(bigVal & 0xffffffffn), true);
+      view.setUint32(4, Number((bigVal >> 32n) & 0xffffffffn), true);
+      return buf;
+    }
+
+    // FloatProperty (4 bytes LE)
+    if (typeLower === "floatproperty") {
+      const buf = new Uint8Array(4);
+      new DataView(buf.buffer).setFloat32(0, value as number, true);
+      return buf;
+    }
+
+    // DoubleProperty (8 bytes LE)
+    if (typeLower === "doubleproperty") {
+      const buf = new Uint8Array(8);
+      new DataView(buf.buffer).setFloat64(0, value as number, true);
+      return buf;
+    }
+
+    // BoolProperty (1 byte)
+    if (typeLower === "boolproperty") {
+      const buf = new Uint8Array(1);
+      buf[0] = value ? 1 : 0;
+      return buf;
+    }
+
+    // ByteProperty (1 byte)
+    if (typeLower === "byteproperty") {
+      const buf = new Uint8Array(1);
+      buf[0] = value as number;
+      return buf;
+    }
+
+    // NameProperty (index: int32 LE + number: int32 LE)
+    if (typeLower === "nameproperty") {
+      const buf = new Uint8Array(8);
+      const view = new DataView(buf.buffer);
+      const nameObj = value as {
+        _fNameIndex?: number;
+        _fNameNumber?: number;
+      };
+      view.setInt32(0, nameObj._fNameIndex ?? 0, true);
+      view.setInt32(4, nameObj._fNameNumber ?? 0, true);
+      return buf;
+    }
+
+    // StrProperty / TextProperty (length: int32 LE + UTF-8 bytes + null terminator)
+    if (typeLower === "strproperty" || typeLower === "textproperty") {
+      const str = String(value ?? "");
+      const strBytes = new TextEncoder().encode(str);
+      // Length includes null terminator
+      const buf = new Uint8Array(4 + strBytes.byteLength + 1);
+      const view = new DataView(buf.buffer);
+      view.setInt32(0, strBytes.byteLength + 1, true);
+      buf.set(strBytes, 4);
+      buf[buf.byteLength - 1] = 0; // null terminator
+      return buf;
+    }
+
+    // Fallback: empty bytes for unknown types
+    return new Uint8Array(0);
   }
 }
 

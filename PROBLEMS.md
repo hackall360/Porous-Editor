@@ -3,10 +3,8 @@ A running tally of every issue, bug, edge case, API quirk, or unexpected behavio
 
 ## Open Problems
 - **Problem**: Limited format support for modern game engines. Details: Currently only 8 formats explicitly supported (json, save, rmmzsave, rpgsave, rvdata2, rxdata, lsd, sav). Need to add support for Unity/Unreal Engine save formats and many other game-specific formats.
-- **Problem**: No binary format parsing capabilities. Details: The current implementation treats all non-JSON files as raw text, which doesn't properly handle binary formats with headers, compression, or structured data like GVAS (Unreal), NBT (Minecraft), SQLite, etc.
 - **Problem**: No format detection based on file headers/magic bytes. Details: Format detection currently relies solely on file extension, which is unreliable for many game saves that use generic extensions like .dat, .bin, .sav.
 - **Problem**: No support for SPSS data files. Details: SPSS .sav/.zsav files require specialized statistical data format parsing that is not currently implemented.
 - **Problem**: Raw editor is insufficient for binary formats. Details: Editing binary files as raw text can corrupt data; need format-specific editors that understand the structure and can serialize back correctly.
-- **Problem**: NBT parser `advanceOffset` is a placeholder implementation. Details: The method returns the input offset unchanged, meaning recursive parsing relies on correct offset tracking in child calls. This works for simple cases but may fail on complex nested structures where exact byte consumption tracking is required.
 - **Problem**: GVAS parser property serialization is incomplete. Details: The `decodeValue` method returns raw bytes or metadata for complex types (arrays, structs) instead of fully parsing them. Round-trip support for these types is experimental at best.
 - **Problem**: Tree editor uses `prompt()` for type selection and key naming. Details: The `promptForType()` and `prompt()` calls use native browser dialogs which block the UI and provide a poor UX. Should be replaced with inline modals or dropdowns within the tree editor itself.
